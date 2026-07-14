@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Tag, IndianRupee, Layers, PlusCircle, X, Shield, Settings, Sliders, MapPin, Edit3 } from 'lucide-react';
+import { Plus, Trash2, Tag, IndianRupee, Layers, PlusCircle, X, Shield, Settings, Sliders, MapPin, Edit3, Download } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
 import BulkUpload from './BulkUpload';
@@ -219,6 +219,34 @@ export default function AdminDashboard({ addToast }) {
       facebook
     });
     addToast('General store settings updated successfully.');
+  };
+
+  const handleExportProductsJson = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(products, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", "default_products.json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.removeChild(downloadAnchor);
+    addToast('Products database exported successfully.');
+  };
+
+  const handleExportSettingsJson = () => {
+    const settingsData = {
+      bannerSlides,
+      locations,
+      shopCategories,
+      shopSettings
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settingsData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", "default_settings.json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.removeChild(downloadAnchor);
+    addToast('Store configurations exported successfully.');
   };
 
   // Compute catalog stats
@@ -891,6 +919,32 @@ export default function AdminDashboard({ addToast }) {
                 Save General Settings
               </button>
             </form>
+          </div>
+
+          {/* DEVELOPER EXPORT CENTER */}
+          <div className="dashboard-card" style={{ marginTop: '24px', border: '1px dashed var(--accent)' }}>
+            <h3 style={{ color: 'var(--accent)' }}>Developer Export Center</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '20px' }}>
+              Set up the storefront visually, then export your database and configurations. Send these files back to the AI assistant to permanently set them as the default catalog for all visitors on GitHub.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={handleExportProductsJson}
+                style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Download size={14} /> Export Products Database (JSON)
+              </button>
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={handleExportSettingsJson}
+                style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Download size={14} /> Export Settings & Config (JSON)
+              </button>
+            </div>
           </div>
         </div>
       )}
