@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Tag, IndianRupee, Layers, PlusCircle, X, Shield, Settings, Sliders, MapPin, Edit3, Download } from 'lucide-react';
+import { Plus, Trash2, Tag, IndianRupee, Layers, PlusCircle, X, Shield, Settings, Sliders, MapPin, Edit3, Download, Upload, Image } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
 import BulkUpload from './BulkUpload';
@@ -517,19 +517,52 @@ export default function AdminDashboard({ addToast }) {
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="slide-img">Background Image URL *</label>
-                <input 
-                  type="url" 
-                  id="slide-img" 
-                  className="form-input" 
-                  placeholder="e.g. https://images.unsplash.com/... (w=1200 recommended)" 
-                  value={newSlide.img} 
-                  onChange={(e) => setNewSlide(prev => ({ ...prev, img: e.target.value }))}
-                  required
-                />
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                  Unsplash menswear tip: search for jacket or techwear, copy the photo URL.
-                </span>
+                <label className="form-label" htmlFor="slide-img">Background Image *</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input 
+                    type="url" 
+                    id="slide-img" 
+                    className="form-input" 
+                    placeholder="Paste image URL here..." 
+                    value={newSlide.img} 
+                    onChange={(e) => setNewSlide(prev => ({ ...prev, img: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '700' }}>OR</span>
+                  <label 
+                    htmlFor="slide-img-upload" 
+                    className="btn-secondary" 
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', margin: 0 }}
+                  >
+                    <Upload size={13} /> Upload
+                  </label>
+                  <input 
+                    type="file" 
+                    id="slide-img-upload" 
+                    accept="image/*" 
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      if (file.size > 2 * 1024 * 1024) {
+                        addToast('Image must be under 2 MB.', 'error');
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setNewSlide(prev => ({ ...prev, img: ev.target.result }));
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Image size={10} />
+                  Recommended: <strong>1920 × 800 px</strong> · JPG/PNG/WebP · Max 2 MB
+                </div>
+                {newSlide.img && (
+                  <div style={{ marginTop: '10px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-luxe)', maxWidth: '280px' }}>
+                    <img src={newSlide.img} alt="Preview" style={{ width: '100%', height: '80px', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                )}
               </div>
 
               <button type="submit" className="btn-accent" style={{ marginTop: '10px' }} id="add-slide-submit">
@@ -1021,15 +1054,52 @@ export default function AdminDashboard({ addToast }) {
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" htmlFor="manual-img">Image URL</label>
-                    <input 
-                      type="url" 
-                      id="manual-img"
-                      className="form-input" 
-                      placeholder="e.g. https://images.unsplash.com/... (or blank for default placeholder)"
-                      value={newProduct.img}
-                      onChange={(e) => setNewProduct(prev => ({ ...prev, img: e.target.value }))}
-                    />
+                    <label className="form-label" htmlFor="manual-img">Product Image</label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input 
+                        type="url" 
+                        id="manual-img"
+                        className="form-input" 
+                        placeholder="Paste image URL here..."
+                        value={newProduct.img}
+                        onChange={(e) => setNewProduct(prev => ({ ...prev, img: e.target.value }))}
+                        style={{ flex: 1 }}
+                      />
+                      <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '700' }}>OR</span>
+                      <label 
+                        htmlFor="product-img-upload" 
+                        className="btn-secondary" 
+                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', margin: 0 }}
+                      >
+                        <Upload size={13} /> Upload
+                      </label>
+                      <input 
+                        type="file" 
+                        id="product-img-upload" 
+                        accept="image/*" 
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) {
+                            addToast('Image must be under 2 MB.', 'error');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setNewProduct(prev => ({ ...prev, img: ev.target.result }));
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Image size={10} />
+                      Recommended: <strong>800 × 1000 px</strong> (portrait) · JPG/PNG/WebP · Max 2 MB
+                    </div>
+                    {newProduct.img && (
+                      <div style={{ marginTop: '10px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-luxe)', maxWidth: '120px' }}>
+                        <img src={newProduct.img} alt="Preview" style={{ width: '100%', height: '140px', objectFit: 'cover', display: 'block' }} />
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-row">
