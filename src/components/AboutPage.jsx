@@ -42,12 +42,13 @@ export default function AboutPage() {
               color: 'var(--text-primary)', 
               textTransform: 'uppercase', 
               marginBottom: '24px',
-              fontFamily: 'var(--font-serif)'
+              fontFamily: 'var(--font-serif)',
+              whiteSpace: 'pre-line'
             }}
           >
             "{shopSettings.aboutMission}"
           </h2>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '24px' }}>
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '24px', whiteSpace: 'pre-line' }}>
             {shopSettings.aboutStory}
           </p>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProductsProvider, useProducts } from './context/ProductsContext';
 import { CartProvider } from './context/CartContext';
@@ -71,7 +71,8 @@ function AppContent() {
             textAlign: 'center', 
             padding: '6px 10px', 
             textTransform: 'uppercase', 
-            letterSpacing: '0.1em' 
+            letterSpacing: '0.1em',
+            whiteSpace: 'pre-line'
           }}
           id="announcement-bar"
         >
@@ -172,9 +173,9 @@ export default function App() {
       <ProductsProvider>
         <CartProvider>
           <SettingsProvider>
-            <BrowserRouter>
+            <HashRouter>
               <AppContent />
-            </BrowserRouter>
+            </HashRouter>
           </SettingsProvider>
         </CartProvider>
       </ProductsProvider>
