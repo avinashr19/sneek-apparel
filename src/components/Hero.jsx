@@ -42,8 +42,8 @@ export default function Hero({ setCurrentView }) {
         minHeight: '75vh',
         padding: '0',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: currentSlide.text_y_pos || 'center',
+        justifyContent: currentSlide.text_x_pos || 'center',
         background: 'var(--bg-darker)'
       }}
     >
@@ -68,7 +68,15 @@ export default function Hero({ setCurrentView }) {
       <div className="hero-glow" style={{ zIndex: 2 }}></div>
 
       {/* Hero Content Box */}
-      <div className="hero-content" style={{ zIndex: 10, padding: '80px 20px', maxWidth: '900px' }}>
+      <div className="hero-content" style={{ 
+        zIndex: 10, 
+        padding: '80px 40px', 
+        maxWidth: '900px',
+        transform: `scale(${currentSlide.text_scale || 1})`,
+        transformOrigin: `${currentSlide.text_x_pos === 'flex-start' ? 'left' : currentSlide.text_x_pos === 'flex-end' ? 'right' : 'center'} ${currentSlide.text_y_pos === 'flex-start' ? 'top' : currentSlide.text_y_pos === 'flex-end' ? 'bottom' : 'center'}`,
+        textAlign: currentSlide.text_x_pos === 'flex-start' ? 'left' : currentSlide.text_x_pos === 'flex-end' ? 'right' : 'center',
+        color: currentSlide.text_color || '#ffffff'
+      }}>
         <span 
           className="hero-tag" 
           style={{ 
@@ -89,6 +97,7 @@ export default function Hero({ setCurrentView }) {
           style={{ 
             fontSize: '56px', 
             textShadow: '0 4px 12px rgba(0,0,0,0.8)',
+            color: 'inherit',
             marginBottom: '16px' 
           }}
         >
@@ -100,7 +109,7 @@ export default function Hero({ setCurrentView }) {
           style={{ 
             fontSize: '18px', 
             textShadow: '0 2px 6px rgba(0,0,0,0.8)',
-            color: '#e5e7eb',
+            color: currentSlide.text_color || '#e5e7eb',
             maxWidth: '700px',
             margin: '0 auto 24px'
           }}
@@ -122,13 +131,13 @@ export default function Hero({ setCurrentView }) {
             textTransform: 'uppercase',
             color: 'var(--accent)',
             marginBottom: '32px',
-            animation: 'pulseGlow 2s ease-in-out infinite'
+            animation: (!currentSlide.offer_effect || currentSlide.offer_effect === 'none') ? 'none' : currentSlide.offer_effect === 'bounce' ? 'bounce 2s infinite' : currentSlide.offer_effect === 'slide-in' ? 'slideInRight 1s ease-out' : 'pulseGlow 2s ease-in-out infinite'
           }}
         >
           {currentSlide.offer}
         </div>
 
-        <div className="hero-actions" style={{ justifyContent: 'center' }}>
+        <div className="hero-actions" style={{ justifyContent: currentSlide.text_x_pos === 'flex-start' ? 'flex-start' : currentSlide.text_x_pos === 'flex-end' ? 'flex-end' : 'center' }}>
           <button 
             className="btn-accent" 
             onClick={() => setCurrentView('shop')}
