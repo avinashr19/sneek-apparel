@@ -1225,8 +1225,6 @@ export default function AdminDashboard({ addToast }) {
                 )}
               </div>
 
-              {user?.role === 'admin' && (
-                <>
                   <div className="dashboard-card" style={{ breakInside: 'avoid', marginBottom: '24px' }}>
                     <h3 style={{ marginBottom: '20px' }}>Content & Messaging</h3>
                     <div className="form-row">
@@ -1293,8 +1291,6 @@ export default function AdminDashboard({ addToast }) {
                       />
                     </div>
                   </div>
-                </>
-              )}
             </div>
             <button type="submit" className="btn-accent" style={{ marginTop: '24px', gridColumn: '1 / -1', width: '100%', maxWidth: '300px' }} id="save-settings-submit">
               Save General Settings
