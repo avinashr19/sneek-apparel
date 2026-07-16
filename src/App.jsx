@@ -37,12 +37,26 @@ function AppContent() {
   if (location.pathname === '/locations') currentView = 'locations';
 
   const setCurrentView = (view) => {
-    if (view === 'home') navigate('/');
-    else if (view === 'shop') navigate('/shop');
-    else if (view === 'admin') navigate('/admin');
-    else if (view === 'contact') navigate('/contact');
-    else if (view === 'about') navigate('/about');
-    else if (view === 'locations') navigate('/locations');
+    const updateDOM = () => {
+      if (view === 'home') navigate('/');
+      else if (view === 'shop') navigate('/shop');
+      else if (view === 'admin') navigate('/admin');
+      else if (view === 'contact') navigate('/contact');
+      else if (view === 'about') navigate('/about');
+      else if (view === 'locations') navigate('/locations');
+    };
+
+    const animType = shopSettings?.nav_animation || 'fade';
+
+    if (!document.startViewTransition || animType === 'none') {
+      updateDOM();
+    } else {
+      document.documentElement.dataset.transition = animType;
+      const transition = document.startViewTransition(() => updateDOM());
+      transition.finished.finally(() => {
+         delete document.documentElement.dataset.transition;
+      });
+    }
   };
   const [toasts, setToasts] = useState([]);
   const { products } = useProducts();
@@ -78,13 +92,12 @@ function AppContent() {
             textAlign: 'center', 
             padding: '6px 10px', 
             textTransform: 'uppercase', 
-            letterSpacing: '0.1em',
-            whiteSpace: 'pre-line'
+            letterSpacing: '0.1em'
           }}
+          className="promo-bar" 
           id="announcement-bar"
-        >
-          {shopSettings.announcementBar}
-        </div>
+          dangerouslySetInnerHTML={{ __html: shopSettings.announcementBar }}
+        />
       )}
 
       {/* GLOBAL NAVBAR */}

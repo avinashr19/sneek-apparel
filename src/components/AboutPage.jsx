@@ -45,12 +45,12 @@ export default function AboutPage() {
               fontFamily: 'var(--font-serif)',
               whiteSpace: 'pre-line'
             }}
-          >
-            "{shopSettings.aboutMission}"
-          </h2>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '24px', whiteSpace: 'pre-line' }}>
-            {shopSettings.aboutStory}
-          </p>
+            dangerouslySetInnerHTML={{ __html: `"${shopSettings.aboutMission}"` }}
+          />
+          <div 
+            style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '24px', whiteSpace: 'pre-line' }}
+            dangerouslySetInnerHTML={{ __html: shopSettings.aboutStory }}
+          />
         </div>
 
         {/* Dynamic fashion background card placeholder */}
@@ -59,20 +59,33 @@ export default function AboutPage() {
             background: 'linear-gradient(135deg, rgba(210,255,0,0.1) 0%, rgba(20,20,24,0.8) 100%)',
             border: '1px solid var(--border-luxe)',
             borderRadius: 'var(--radius-lg)',
-            padding: '40px',
+            padding: shopSettings.about_image_url ? '0' : '40px',
             display: 'flex',
             flexDirection: 'column',
             gap: '24px',
-            boxShadow: 'var(--shadow-luxe)'
+            boxShadow: 'var(--shadow-luxe)',
+            overflow: 'hidden',
+            minHeight: '300px',
+            justifyContent: 'center'
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-            <Target size={48} style={{ color: 'var(--accent)' }} />
-          </div>
-          <h3 style={{ fontSize: '20px', textTransform: 'uppercase', textAlign: 'center' }}>ENGINEERED APPAREL</h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.6' }}>
-            Every pattern draft is tested in real-world street settings. We optimize pocket access angles, neck rib ribbing tensions, and drop-shoulder dimensions for maximum comfort.
-          </p>
+          {shopSettings.about_image_url ? (
+            <img 
+              src={shopSettings.about_image_url} 
+              alt="About" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                <Target size={48} style={{ color: 'var(--accent)' }} />
+              </div>
+              <h3 style={{ fontSize: '20px', textTransform: 'uppercase', textAlign: 'center' }}>ENGINEERED APPAREL</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.6' }}>
+                Every pattern draft is tested in real-world street settings. We optimize pocket access angles, neck rib ribbing tensions, and drop-shoulder dimensions for maximum comfort.
+              </p>
+            </>
+          )}
         </div>
       </div>
 

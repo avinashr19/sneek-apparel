@@ -92,10 +92,6 @@ export default function AdminLogin({ addToast }) {
                         </div>
                     </div>
 
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '24px', textAlign: 'center' }}>
-                        Demo User: <code style={{ fontSize: '11px', padding: '2px 4px' }}>admin</code> / Password: <code style={{ fontSize: '11px', padding: '2px 4px' }}>password123</code>
-                    </div>
-
                     <button
                         type="submit"
                         className="btn-accent login-btn"

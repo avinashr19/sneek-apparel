@@ -24,18 +24,30 @@ export const SettingsProvider = ({ children }) => {
     const [storeReviews, setStoreReviews] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Apply CSS theme variables
+    // Apply CSS theme variables from database
     useEffect(() => {
         const root = document.documentElement;
-        root.style.setProperty('--bg-darker', CLIENT_THEME.themeBg || '#0c0c0e');
-        root.style.setProperty('--accent', CLIENT_THEME.themeAccent || '#d2ff00');
-        root.style.setProperty('--text-primary', CLIENT_THEME.themeText || '#ffffff');
-        root.style.setProperty('--bg-card', CLIENT_THEME.themeCard || '#141418');
-        root.style.setProperty('--border-luxe', CLIENT_THEME.themeBorder || '#24242c');
-        const accent = CLIENT_THEME.themeAccent || '#d2ff00';
+        root.style.setProperty('--bg-darker', shopSettings?.primary_bg_color || '#0c0c0e');
+        root.style.setProperty('--bg-card', '#141418'); 
+        root.style.setProperty('--accent', shopSettings?.accent_color || '#d2ff00');
+        root.style.setProperty('--brand-name-color', shopSettings?.brand_name_color || '#ffffff');
+        root.style.setProperty('--text-primary', '#ffffff');
+        root.style.setProperty('--border-luxe', '#24242c');
+        
+        const accent = shopSettings?.accent_color || '#d2ff00';
         root.style.setProperty('--accent-soft', accent + '1a');
         root.style.setProperty('--border-hover', accent + '33');
-    }, []);
+
+        root.style.setProperty('--brand-font-size', shopSettings?.brand_name_size || 'inherit');
+        root.style.setProperty('--brand-font-weight', shopSettings?.brand_name_weight || 'bold');
+        root.style.setProperty('--brand-font-family', shopSettings?.brand_name_font || 'inherit');
+    }, [
+        shopSettings?.primary_bg_color, 
+        shopSettings?.accent_color,
+        shopSettings?.brand_name_size,
+        shopSettings?.brand_name_weight,
+        shopSettings?.brand_name_font
+    ]);
 
     // Fetch all settings data from Supabase
     const fetchAll = async () => {

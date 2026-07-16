@@ -21,8 +21,14 @@ export default function Navbar({ currentView, setCurrentView }) {
             <div className="header-container">
                 {/* LOGO AREA */}
                 <div className="nav-logo">
-                    <a href="#" onClick={(e) => handleNavClick('home', e)} style={{ color: 'inherit', textDecoration: 'none' }}>
-                        {shopSettings?.brand_name || 'SNEEK'}<span>.</span>
+                    <a href="#" onClick={(e) => handleNavClick('home', e)} style={{ 
+                        color: 'var(--brand-name-color)', 
+                        textDecoration: 'none',
+                        fontSize: 'var(--brand-font-size)',
+                        fontWeight: 'var(--brand-font-weight)',
+                        fontFamily: 'var(--brand-font-family)'
+                    }}>
+                        {shopSettings?.brand_name?.toUpperCase() || 'SNEEK'}
                     </a>
                 </div>
 

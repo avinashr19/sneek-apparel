@@ -9,16 +9,20 @@ export default function Footer({ setCurrentView }) {
     <footer className="site-footer">
       <div className="footer-grid">
         <div className="footer-bio">
-          <a 
-            href="#" 
-            className="logo-link"
-            onClick={(e) => {
-              e.preventDefault();
-              setCurrentView('home');
-            }}
-          >
-            {shopSettings?.brand_name || 'SNEEK'}<span>.</span>
-          </a>
+          <h2 className="footer-logo">
+            <a 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); setCurrentView('home'); window.scrollTo(0, 0); }} 
+              style={{ 
+                color: 'var(--brand-name-color)',
+                fontSize: 'var(--brand-font-size)',
+                fontWeight: 'var(--brand-font-weight)',
+                fontFamily: 'var(--brand-font-family)'
+              }}
+            >
+              {shopSettings?.brand_name?.toUpperCase() || 'SNEEK'}
+            </a>
+          </h2>
           <p>
             An progressive menswear concept specializing in techwear accents, oversized drapery, and minimalist color systems. Designed for utility.
           </p>

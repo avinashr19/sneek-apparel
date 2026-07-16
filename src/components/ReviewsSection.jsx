@@ -51,9 +51,7 @@ export default function ReviewsSection() {
                                 {[...Array(review.rating)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
                             </div>
                             
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6', flexGrow: 1 }}>
-                                "{review.text}"
-                            </p>
+                            <div className="review-text" style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6', flexGrow: 1 }} dangerouslySetInnerHTML={{ __html: review.text }} />
                         </div>
                     ))}
                 </div>

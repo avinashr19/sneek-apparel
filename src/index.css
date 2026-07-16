@@ -1803,6 +1803,57 @@ button {
 @media (max-width: 500px) {
   .cart-drawer {
     width: 100% !important;
-    border-left: none !important;
   }
+}
+
+/* --- View Transitions API Customizations --- */
+
+/* Base fade (Default) */
+html[data-transition="fade"]::view-transition-old(root) {
+  animation: 0.25s ease-out both fade-out;
+}
+html[data-transition="fade"]::view-transition-new(root) {
+  animation: 0.25s ease-out both fade-in;
+}
+
+/* Slide Left */
+html[data-transition="slide-left"]::view-transition-old(root) {
+  animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both slide-out-left;
+}
+html[data-transition="slide-left"]::view-transition-new(root) {
+  animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both slide-in-right;
+}
+
+/* Slide Up */
+html[data-transition="slide-up"]::view-transition-old(root) {
+  animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+}
+html[data-transition="slide-up"]::view-transition-new(root) {
+  animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both slide-in-up;
+}
+
+/* Keyframes */
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-out-left {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-100px); opacity: 0; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-up {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }

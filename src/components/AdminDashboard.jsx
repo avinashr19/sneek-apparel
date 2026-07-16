@@ -5,6 +5,8 @@ import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import BulkUpload from './BulkUpload';
+import ImageUpload from './ImageUpload';
+import RichTextEditor from './RichTextEditor';
 
 export default function AdminDashboard({ addToast }) {
   const { products, addNewProduct, deleteProduct } = useProducts();
@@ -82,6 +84,14 @@ export default function AdminDashboard({ addToast }) {
   const [whatsapp, setWhatsapp] = useState('');
   const [instagram, setInstagram] = useState('');
   const [facebook, setFacebook] = useState('');
+  const [primaryBgColor, setPrimaryBgColor] = useState('#0c0c0e');
+  const [accentColor, setAccentColor] = useState('#d2ff00');
+  const [brandNameColor, setBrandNameColor] = useState('#ffffff');
+  const [brandNameSize, setBrandNameSize] = useState('inherit');
+  const [brandNameWeight, setBrandNameWeight] = useState('bold');
+  const [brandNameFont, setBrandNameFont] = useState('inherit');
+  const [navAnimation, setNavAnimation] = useState('fade');
+  const [aboutImageUrl, setAboutImageUrl] = useState('');
 
   // Review Form state
   const [newReview, setNewReview] = useState({
@@ -103,6 +113,14 @@ export default function AdminDashboard({ addToast }) {
       setWhatsapp(shopSettings.whatsapp || '');
       setInstagram(shopSettings.instagram || '');
       setFacebook(shopSettings.facebook || '');
+      setPrimaryBgColor(shopSettings.primary_bg_color || '#0c0c0e');
+      setAccentColor(shopSettings.accent_color || '#d2ff00');
+      setBrandNameColor(shopSettings.brand_name_color || '#ffffff');
+      setBrandNameSize(shopSettings.brand_name_size || 'inherit');
+      setBrandNameWeight(shopSettings.brand_name_weight || 'bold');
+      setBrandNameFont(shopSettings.brand_name_font || 'inherit');
+      setNavAnimation(shopSettings.nav_animation || 'fade');
+      setAboutImageUrl(shopSettings.about_image_url || '');
     }
   }, [shopSettings]);
 
@@ -225,7 +243,15 @@ export default function AdminDashboard({ addToast }) {
       about_story: aboutStory,
       whatsapp,
       instagram,
-      facebook
+      facebook,
+      primary_bg_color: primaryBgColor,
+      accent_color: accentColor,
+      brand_name_color: brandNameColor,
+      brand_name_size: brandNameSize,
+      brand_name_weight: brandNameWeight,
+      brand_name_font: brandNameFont,
+      nav_animation: navAnimation,
+      about_image_url: aboutImageUrl
     });
     addToast('General store settings updated successfully.');
   };
@@ -303,7 +329,14 @@ export default function AdminDashboard({ addToast }) {
       {/* HEADER SECTION */}
       <div className="admin-header-row">
         <div className="admin-title-area">
-          <h1>{shopSettings?.brand_name?.toUpperCase() || 'SNEEK'} CONTROL BOARD</h1>
+          <h1 style={{ 
+            color: 'var(--brand-name-color)',
+            fontSize: 'var(--brand-font-size)',
+            fontWeight: 'var(--brand-font-weight)',
+            fontFamily: 'var(--brand-font-family)'
+          }}>
+            {shopSettings?.brand_name?.toUpperCase() || 'SNEEK'} CONTROL BOARD
+          </h1>
           <p>Configure garments, landing page carousel slides, showroom locations, and thresholds</p>
         </div>
 
@@ -562,7 +595,7 @@ export default function AdminDashboard({ addToast }) {
 
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label" htmlFor="slide-img">Background Image *</label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <input 
                     type="url" 
                     id="slide-img" 
@@ -570,32 +603,10 @@ export default function AdminDashboard({ addToast }) {
                     placeholder="Paste image URL here..." 
                     value={newSlide.img} 
                     onChange={(e) => setNewSlide(prev => ({ ...prev, img: e.target.value }))}
-                    style={{ flex: 1 }}
                   />
                   <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '700' }}>OR</span>
-                  <label 
-                    htmlFor="slide-img-upload" 
-                    className="btn-secondary" 
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', margin: 0 }}
-                  >
-                    <Upload size={13} /> Upload
-                  </label>
-                  <input 
-                    type="file" 
-                    id="slide-img-upload" 
-                    accept="image/*" 
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-                      if (file.size > 2 * 1024 * 1024) {
-                        addToast('Image must be under 2 MB.', 'error');
-                        return;
-                      }
-                      const reader = new FileReader();
-                      reader.onload = (ev) => setNewSlide(prev => ({ ...prev, img: ev.target.result }));
-                      reader.readAsDataURL(file);
-                    }}
+                  <ImageUpload 
+                    onUploadSuccess={(url) => setNewSlide(prev => ({ ...prev, img: url }))}
                   />
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -952,17 +963,24 @@ export default function AdminDashboard({ addToast }) {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Profile Photo URL (optional)</label>
-                <input 
-                  type="url" className="form-input" placeholder="https://"
-                  value={newReview.profile_photo_url} onChange={e => setNewReview({...newReview, profile_photo_url: e.target.value})}
-                />
+                <label className="form-label">Profile Photo</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input 
+                    type="url" className="form-input" placeholder="Paste URL or upload..."
+                    value={newReview.profile_photo_url} onChange={e => setNewReview({...newReview, profile_photo_url: e.target.value})}
+                  />
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '700' }}>OR</span>
+                  <ImageUpload 
+                    onUploadSuccess={(url) => setNewReview({...newReview, profile_photo_url: url})}
+                  />
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">Review Text</label>
-                <textarea 
-                  className="form-input" rows={4} required style={{ resize: 'vertical' }}
-                  value={newReview.text} onChange={e => setNewReview({...newReview, text: e.target.value})}
+                <RichTextEditor 
+                  value={newReview.text}
+                  onChange={(val) => setNewReview({...newReview, text: val})}
+                  placeholder="Customer review text..."
                 />
               </div>
               <button type="submit" className="btn-accent" style={{ width: '100%', justifyContent: 'center' }}>
@@ -975,28 +993,23 @@ export default function AdminDashboard({ addToast }) {
 
       {/* TAB 4: GENERAL CONFIGURATIONS */}
       {activeTab === 'settings' && (
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <div className="dashboard-card">
-            <h3>General Store Config</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px' }}>
-              Control utility configurations that appear dynamically on storefront banners and calculations.
-            </p>
-
-            <form onSubmit={handleSaveSettings} className="add-product-form">
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <form onSubmit={handleSaveSettings} className="add-product-form" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', alignItems: 'start' }}>
+            
+            <div className="dashboard-card">
+              <h3>General Store Config</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px' }}>
+                Control utility configurations that appear dynamically on storefront banners and calculations.
+              </p>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label" htmlFor="config-announcement">Top Announcement Bar Text</label>
-                <input 
-                  type="text" 
-                  id="config-announcement" 
-                  className="form-input" 
-                  placeholder="e.g. FREE SHIPPING ON ORDERS OVER ₹15,000" 
-                  value={announcementText} 
-                  onChange={(e) => setAnnouncementText(e.target.value)}
+                <RichTextEditor 
+                  value={announcementText}
+                  onChange={setAnnouncementText}
+                  placeholder="e.g. FREE SHIPPING ON ORDERS OVER ₹15,000"
                 />
               </div>
-
               {user?.role === 'admin' && (
-                <>
                   <div className="form-row">
                     <div className="form-group" style={{ margin: 0 }}>
                       <label className="form-label" htmlFor="config-brand">Store Brand Name *</label>
@@ -1011,6 +1024,137 @@ export default function AdminDashboard({ addToast }) {
                       />
                     </div>
                   </div>
+                )}
+            </div>
+
+            {user?.role === 'admin' && (
+              <>
+            <div className="dashboard-card">
+                  <h3 style={{ marginBottom: '20px' }}>
+                    Global Theme Colors
+                  </h3>
+                  
+                  <div className="form-row">
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-bg-color">Primary Background Color</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          type="color" 
+                          id="config-bg-color" 
+                          value={primaryBgColor} 
+                          onChange={(e) => setPrimaryBgColor(e.target.value)}
+                          style={{ width: '40px', height: '40px', padding: '0', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                        />
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          value={primaryBgColor} 
+                          onChange={(e) => setPrimaryBgColor(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-accent-color">Accent Color</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          type="color" 
+                          id="config-accent-color" 
+                          value={accentColor} 
+                          onChange={(e) => setAccentColor(e.target.value)}
+                          style={{ width: '40px', height: '40px', padding: '0', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                        />
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          value={accentColor} 
+                          onChange={(e) => setAccentColor(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="form-group" style={{ margin: 0, marginTop: '16px' }}>
+                      <label className="form-label" htmlFor="config-brand-color">Brand Name Color</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          type="color" 
+                          id="config-brand-color" 
+                          value={brandNameColor} 
+                          onChange={(e) => setBrandNameColor(e.target.value)}
+                          style={{ width: '40px', height: '40px', padding: '0', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                        />
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          value={brandNameColor} 
+                          onChange={(e) => setBrandNameColor(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                  </div>
+            </div>
+
+            <div className="dashboard-card">
+                  <h3 style={{ marginBottom: '20px' }}>
+                    Brand Typography
+                  </h3>
+                  
+                  <div className="form-row">
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-brand-size">Brand Font Size</label>
+                      <select 
+                        id="config-brand-size" 
+                        className="form-input" 
+                        value={brandNameSize} 
+                        onChange={(e) => setBrandNameSize(e.target.value)}
+                      >
+                        <option value="inherit">Default (Inherit)</option>
+                        <option value="1.2rem">Small (1.2rem)</option>
+                        <option value="1.5rem">Medium (1.5rem)</option>
+                        <option value="2rem">Large (2rem)</option>
+                        <option value="2.5rem">Extra Large (2.5rem)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-brand-weight">Brand Font Weight</label>
+                      <select 
+                        id="config-brand-weight" 
+                        className="form-input" 
+                        value={brandNameWeight} 
+                        onChange={(e) => setBrandNameWeight(e.target.value)}
+                      >
+                        <option value="normal">Normal (400)</option>
+                        <option value="600">Semi Bold (600)</option>
+                        <option value="bold">Bold (700)</option>
+                        <option value="900">Black (900)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0, marginTop: '16px' }}>
+                    <label className="form-label" htmlFor="config-brand-font">Brand Font Family</label>
+                    <select 
+                      id="config-brand-font" 
+                      className="form-input" 
+                      value={brandNameFont} 
+                      onChange={(e) => setBrandNameFont(e.target.value)}
+                    >
+                      <option value="inherit">Default (Sans-Serif)</option>
+                      <option value="'Playfair Display', serif">Serif (Playfair Display)</option>
+                      <option value="'Courier New', Courier, monospace">Monospace (Courier)</option>
+                      <option value="'Anton', sans-serif">Impact (Anton)</option>
+                    </select>
+                  </div>
+            </div>
+
+            <div className="dashboard-card">
+                  <h3 style={{ marginBottom: '20px' }}>
+                    Content & Messaging
+                  </h3>
 
                   <div className="form-row">
                     <div className="form-group" style={{ margin: 0 }}>
@@ -1040,40 +1184,50 @@ export default function AdminDashboard({ addToast }) {
                       />
                     </div>
                   </div>
+            </div>
 
-                  <h4 style={{ textTransform: 'uppercase', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-luxe)', paddingTop: '16px', marginTop: '10px' }}>
+            <div className="dashboard-card">
+                  <h3 style={{ marginBottom: '20px' }}>
                     About Page Philosophy
-                  </h4>
+                  </h3>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">About Page Philosophy Image</label>
+                    <ImageUpload 
+                      onUploadSuccess={(url) => setAboutImageUrl(url)}
+                      label={aboutImageUrl ? "Replace Image" : "Upload Image"}
+                    />
+                    {aboutImageUrl && (
+                      <div style={{ marginTop: '12px' }}>
+                        <img src={aboutImageUrl} alt="About preview" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '4px' }} />
+                        <button type="button" onClick={() => setAboutImageUrl('')} style={{ display: 'block', marginTop: '8px', color: '#ff4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Remove Image</button>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label" htmlFor="config-mission">Brand Mission Statement</label>
-                    <textarea 
-                      id="config-mission" 
-                      className="form-input" 
-                      placeholder="Write mission quote..." 
-                      value={aboutMission} 
-                      onChange={(e) => setAboutMission(e.target.value)}
-                      rows={2}
-                      style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                    <RichTextEditor 
+                      value={aboutMission}
+                      onChange={setAboutMission}
+                      placeholder="Write mission quote..."
                     />
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label" htmlFor="config-story">Brand History Story</label>
-                    <textarea 
-                      id="config-story" 
-                      className="form-input" 
-                      placeholder="Describe brand story..." 
-                      value={aboutStory} 
-                      onChange={(e) => setAboutStory(e.target.value)}
-                      rows={4}
-                      style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                    <RichTextEditor 
+                      value={aboutStory}
+                      onChange={setAboutStory}
+                      placeholder="Describe brand story..."
                     />
                   </div>
+            </div>
 
-                  <h4 style={{ textTransform: 'uppercase', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-luxe)', paddingTop: '16px', marginTop: '10px' }}>
+            <div className="dashboard-card">
+                  <h3 style={{ marginBottom: '20px' }}>
                     Social Handles & Coordinates
-                  </h4>
+                  </h3>
 
                   <div className="form-row">
                     <div className="form-group" style={{ margin: 0 }}>
@@ -1112,14 +1266,35 @@ export default function AdminDashboard({ addToast }) {
                       onChange={(e) => setFacebook(e.target.value)}
                     />
                   </div>
+            </div>
+
+            <div className="dashboard-card">
+                  <h3 style={{ marginBottom: '20px' }}>
+                    Site Experience
+                  </h3>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="config-nav-animation">Page Navigation Animation</label>
+                    <select 
+                      id="config-nav-animation" 
+                      className="form-input" 
+                      value={navAnimation} 
+                      onChange={(e) => setNavAnimation(e.target.value)}
+                    >
+                      <option value="fade">Default (Smooth Fade)</option>
+                      <option value="slide-left">Slide Left (App Style)</option>
+                      <option value="slide-up">Slide Up</option>
+                      <option value="none">None (Instant)</option>
+                    </select>
+                  </div>
+            </div>
                 </>
               )}
 
-              <button type="submit" className="btn-accent" style={{ marginTop: '10px' }} id="save-settings-submit">
+              <button type="submit" className="btn-accent" style={{ marginTop: '10px', gridColumn: '1 / -1' }} id="save-settings-submit">
                 Save General Settings
               </button>
             </form>
-          </div>
 
           {/* DEVELOPER EXPORT CENTER */}
           {user?.role === 'admin' && (
@@ -1279,20 +1454,16 @@ export default function AdminDashboard({ addToast }) {
 
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label" htmlFor="manual-desc">Description</label>
-                    <textarea 
-                      id="manual-desc"
-                      className="form-input" 
-                      placeholder="Enter detailed description of garment fabric, weight, drape..."
+                    <RichTextEditor 
                       value={newProduct.description}
-                      onChange={(e) => setNewProduct(prev => ({ ...prev, description: e.target.value }))}
-                      rows={3}
-                      style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                      onChange={(val) => setNewProduct(prev => ({ ...prev, description: val }))}
+                      placeholder="Enter detailed description of garment fabric, weight, drape..."
                     />
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label" htmlFor="manual-img">Product Image</label>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <input 
                         type="url" 
                         id="manual-img"
@@ -1300,32 +1471,10 @@ export default function AdminDashboard({ addToast }) {
                         placeholder="Paste image URL here..."
                         value={newProduct.img}
                         onChange={(e) => setNewProduct(prev => ({ ...prev, img: e.target.value }))}
-                        style={{ flex: 1 }}
                       />
                       <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '700' }}>OR</span>
-                      <label 
-                        htmlFor="product-img-upload" 
-                        className="btn-secondary" 
-                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', margin: 0 }}
-                      >
-                        <Upload size={13} /> Upload
-                      </label>
-                      <input 
-                        type="file" 
-                        id="product-img-upload" 
-                        accept="image/*" 
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          const file = e.target.files[0];
-                          if (!file) return;
-                          if (file.size > 2 * 1024 * 1024) {
-                            addToast('Image must be under 2 MB.', 'error');
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = (ev) => setNewProduct(prev => ({ ...prev, img: ev.target.result }));
-                          reader.readAsDataURL(file);
-                        }}
+                      <ImageUpload 
+                        onUploadSuccess={(url) => setNewProduct(prev => ({ ...prev, img: url }))}
                       />
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>

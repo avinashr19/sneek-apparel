@@ -34,7 +34,9 @@ export default function ProductCard({ product, addToast }) {
             <div className="product-info">
                 <span className="product-category">{product.category}</span>
                 <h3 className="product-name">{product.name}</h3>
-                <p className="product-desc">{product.description}</p>
+                {product.description && (
+            <p className="product-desc-preview" dangerouslySetInnerHTML={{ __html: product.description }}></p>
+        )}
 
                 {/* Size/Color Pickers */}
                 <div style={{ marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
