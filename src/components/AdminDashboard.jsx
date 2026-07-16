@@ -239,7 +239,7 @@ export default function AdminDashboard({ addToast }) {
     setNewSlide({
       tag: slide.tag || '',
       title: slide.title || '',
-      desc: slide.desc || '',
+      desc: slide.description || slide.desc || '',
       offer: slide.offer || '',
       img: slide.img_url || slide.img || ''
     });

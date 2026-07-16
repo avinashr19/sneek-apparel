@@ -87,10 +87,20 @@ export const SettingsProvider = ({ children }) => {
 
     // --- Banner Slides ---
     const addSlide = async (slide) => {
+        const payload = { ...slide };
+        if (payload.img) {
+            payload.img_url = payload.img;
+            delete payload.img;
+        }
+        if (payload.desc) {
+            payload.description = payload.desc;
+            delete payload.desc;
+        }
+
         const maxOrder = bannerSlides.reduce((m, s) => Math.max(m, s.sort_order || 0), 0);
         const { data, error } = await supabase
             .from('banner_slides')
-            .insert([{ ...slide, img_url: slide.img || slide.img_url, sort_order: maxOrder + 1 }])
+            .insert([{ ...payload, sort_order: maxOrder + 1 }])
             .select()
             .single();
         if (!error && data) setBannerSlides(prev => [...prev, data]);
@@ -106,6 +116,10 @@ export const SettingsProvider = ({ children }) => {
         if (payload.img) {
             payload.img_url = payload.img;
             delete payload.img;
+        }
+        if (payload.desc) {
+            payload.description = payload.desc;
+            delete payload.desc;
         }
         const { data, error } = await supabase
             .from('banner_slides')
