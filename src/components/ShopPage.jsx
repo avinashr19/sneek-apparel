@@ -135,17 +135,17 @@ export default function ShopPage({ addToast }) {
                 </div>
             </div>
 
-            <div className="filters-wrapper">
-                {/* MOBILE FILTERS TOGGLE */}
-                <button 
-                    className="mobile-filter-toggle btn-secondary" 
-                    onClick={() => setShowMobileFilters(!showMobileFilters)}
-                    style={{ marginBottom: '20px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                    {showMobileFilters ? <X size={18} /> : <SlidersHorizontal size={18} />}
-                    {showMobileFilters ? 'Hide Filters' : 'Show Filters'}
-                </button>
+            {/* MOBILE FILTERS TOGGLE */}
+            <button 
+                className="mobile-filter-toggle btn-secondary" 
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                style={{ marginBottom: '20px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            >
+                {showMobileFilters ? <X size={18} /> : <SlidersHorizontal size={18} />}
+                {showMobileFilters ? 'Hide Filters' : 'Show Filters'}
+            </button>
 
+            <div className="filters-wrapper">
                 {/* SIDEBAR FILTER PANEL */}
                 <aside className={`sidebar-filters ${showMobileFilters ? 'open' : ''}`}>
                     {/* SEARCH */}
