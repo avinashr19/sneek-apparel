@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Tag, IndianRupee, Layers, PlusCircle, X, Shield, Settings, Sliders, MapPin, Edit3, Download, Upload, Image, MessageSquare, ShoppingBag, Star } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import BulkUpload from './BulkUpload';
 
 export default function AdminDashboard({ addToast }) {
   const { products, addNewProduct, deleteProduct } = useProducts();
+  const { user } = useAuth();
   const { 
     bannerSlides, 
     locations, 
@@ -71,6 +72,7 @@ export default function AdminDashboard({ addToast }) {
   });
 
   // General Settings state
+  const [brandName, setBrandName] = useState('');
   const [announcementText, setAnnouncementText] = useState('');
   const [shippingThreshold, setShippingThreshold] = useState(150);
   const [emailContact, setEmailContact] = useState('');
@@ -91,6 +93,7 @@ export default function AdminDashboard({ addToast }) {
 
   useEffect(() => {
     if (shopSettings) {
+      setBrandName(shopSettings.brand_name || '');
       setAnnouncementText(shopSettings.announcementBar || '');
       setShippingThreshold(shopSettings.freeShippingThreshold || 150);
       setEmailContact(shopSettings.contactEmail || '');
@@ -213,6 +216,7 @@ export default function AdminDashboard({ addToast }) {
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     await updateSettings({
+      brand_name: brandName,
       free_shipping_threshold: parseFloat(shippingThreshold) || 0,
       announcement_bar: announcementText,
       contact_email: emailContact,
@@ -298,7 +302,7 @@ export default function AdminDashboard({ addToast }) {
       {/* HEADER SECTION */}
       <div className="admin-header-row">
         <div className="admin-title-area">
-          <h1>SNEEK CONTROL BOARD</h1>
+          <h1>{shopSettings?.brand_name?.toUpperCase() || 'SNEEK'} CONTROL BOARD</h1>
           <p>Configure garments, landing page carousel slides, showroom locations, and thresholds</p>
         </div>
 
@@ -330,13 +334,13 @@ export default function AdminDashboard({ addToast }) {
         {[
           { id: 'garments', label: 'Garments Ledger', icon: <Layers size={14} /> },
           { id: 'categories', label: 'Categories', icon: <Tag size={14} /> },
-          { id: 'carousel', label: 'Home Carousel', icon: <Sliders size={14} /> },
+          { id: 'carousel', label: 'Home Carousel', icon: <Sliders size={14} />, adminOnly: true },
           { id: 'locations', label: 'Showrooms', icon: <MapPin size={14} /> },
           { id: 'reviews', label: 'Reviews', icon: <Star size={14} /> },
           { id: 'settings', label: 'General Config', icon: <Settings size={14} /> },
           { id: 'feedback', label: 'Feedback', icon: <MessageSquare size={14} /> },
           { id: 'orderlogs', label: 'Order Logs', icon: <ShoppingBag size={14} /> },
-        ].map(tab => (
+        ].filter(t => !t.adminOnly || user?.role === 'admin').map(tab => (
           <button
             key={tab.id}
             className={`nav-link`}
@@ -984,115 +988,131 @@ export default function AdminDashboard({ addToast }) {
                   type="text" 
                   id="config-announcement" 
                   className="form-input" 
-                  placeholder="e.g. FREE WORLDWIDE DELIVERY ON ALL DROP ORDERS" 
+                  placeholder="e.g. FREE SHIPPING ON ORDERS OVER ₹15,000" 
                   value={announcementText} 
                   onChange={(e) => setAnnouncementText(e.target.value)}
                 />
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                  Leave blank to hide the announcement bar at the top of the site.
-                </span>
               </div>
 
-              <div className="form-row">
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" htmlFor="config-threshold">Free Shipping Threshold (USD) *</label>
-                  <input 
-                    type="number" 
-                    id="config-threshold" 
-                    className="form-input" 
-                    placeholder="e.g. 150" 
-                    value={shippingThreshold} 
-                    onChange={(e) => setShippingThreshold(e.target.value)}
-                    min="0"
-                    required
-                  />
-                </div>
+              {user?.role === 'admin' && (
+                <>
+                  <div className="form-row">
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-brand">Store Brand Name *</label>
+                      <input 
+                        type="text" 
+                        id="config-brand" 
+                        className="form-input" 
+                        placeholder="e.g. SNEEK" 
+                        value={brandName} 
+                        onChange={(e) => setBrandName(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
 
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" htmlFor="config-email">Styling Support Email *</label>
-                  <input 
-                    type="email" 
-                    id="config-email" 
-                    className="form-input" 
-                    placeholder="e.g. concierge@sneek.co" 
-                    value={emailContact} 
-                    onChange={(e) => setEmailContact(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+                  <div className="form-row">
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-threshold">Free Shipping Threshold (₹) *</label>
+                      <input 
+                        type="number" 
+                        id="config-threshold" 
+                        className="form-input" 
+                        placeholder="e.g. 150" 
+                        value={shippingThreshold} 
+                        onChange={(e) => setShippingThreshold(e.target.value)}
+                        min="0"
+                        required
+                      />
+                    </div>
 
-              <h4 style={{ textTransform: 'uppercase', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-luxe)', paddingTop: '16px', marginTop: '10px' }}>
-                About Page Philosophy
-              </h4>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-email">Styling Support Email *</label>
+                      <input 
+                        type="email" 
+                        id="config-email" 
+                        className="form-input" 
+                        placeholder="e.g. concierge@sneek.co" 
+                        value={emailContact} 
+                        onChange={(e) => setEmailContact(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="config-mission">Brand Mission Statement</label>
-                <textarea 
-                  id="config-mission" 
-                  className="form-input" 
-                  placeholder="Write mission quote..." 
-                  value={aboutMission} 
-                  onChange={(e) => setAboutMission(e.target.value)}
-                  rows={2}
-                  style={{ resize: 'vertical', fontFamily: 'inherit' }}
-                />
-              </div>
+                  <h4 style={{ textTransform: 'uppercase', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-luxe)', paddingTop: '16px', marginTop: '10px' }}>
+                    About Page Philosophy
+                  </h4>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="config-story">Brand History Story</label>
-                <textarea 
-                  id="config-story" 
-                  className="form-input" 
-                  placeholder="Describe brand story..." 
-                  value={aboutStory} 
-                  onChange={(e) => setAboutStory(e.target.value)}
-                  rows={4}
-                  style={{ resize: 'vertical', fontFamily: 'inherit' }}
-                />
-              </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="config-mission">Brand Mission Statement</label>
+                    <textarea 
+                      id="config-mission" 
+                      className="form-input" 
+                      placeholder="Write mission quote..." 
+                      value={aboutMission} 
+                      onChange={(e) => setAboutMission(e.target.value)}
+                      rows={2}
+                      style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                    />
+                  </div>
 
-              <h4 style={{ textTransform: 'uppercase', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-luxe)', paddingTop: '16px', marginTop: '10px' }}>
-                Social Handles & Coordinates
-              </h4>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="config-story">Brand History Story</label>
+                    <textarea 
+                      id="config-story" 
+                      className="form-input" 
+                      placeholder="Describe brand story..." 
+                      value={aboutStory} 
+                      onChange={(e) => setAboutStory(e.target.value)}
+                      rows={4}
+                      style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                    />
+                  </div>
 
-              <div className="form-row">
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" htmlFor="config-whatsapp">WhatsApp Handle</label>
-                  <input 
-                    type="text" 
-                    id="config-whatsapp" 
-                    className="form-input" 
-                    placeholder="e.g. +1 (555) 019-2831" 
-                    value={whatsapp} 
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                  />
-                </div>
+                  <h4 style={{ textTransform: 'uppercase', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-luxe)', paddingTop: '16px', marginTop: '10px' }}>
+                    Social Handles & Coordinates
+                  </h4>
 
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" htmlFor="config-instagram">Instagram Tag</label>
-                  <input 
-                    type="text" 
-                    id="config-instagram" 
-                    className="form-input" 
-                    placeholder="e.g. @sneek.apparel" 
-                    value={instagram} 
-                    onChange={(e) => setInstagram(e.target.value)}
-                  />
-                </div>
-              </div>
+                  <div className="form-row">
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-whatsapp">WhatsApp Handle</label>
+                      <input 
+                        type="text" 
+                        id="config-whatsapp" 
+                        className="form-input" 
+                        placeholder="e.g. +1 (555) 019-2831" 
+                        value={whatsapp} 
+                        onChange={(e) => setWhatsapp(e.target.value)}
+                      />
+                    </div>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="config-facebook">Facebook Page Coordinate</label>
-                <input 
-                  type="text" 
-                  id="config-facebook" 
-                  className="form-input" 
-                  placeholder="e.g. facebook.com/sneek.apparel" 
-                  value={facebook} 
-                  onChange={(e) => setFacebook(e.target.value)}
-                />
-              </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-instagram">Instagram Tag</label>
+                      <input 
+                        type="text" 
+                        id="config-instagram" 
+                        className="form-input" 
+                        placeholder="e.g. @sneek.apparel" 
+                        value={instagram} 
+                        onChange={(e) => setInstagram(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="config-facebook">Facebook Page Coordinate</label>
+                    <input 
+                      type="text" 
+                      id="config-facebook" 
+                      className="form-input" 
+                      placeholder="e.g. facebook.com/sneek.apparel" 
+                      value={facebook} 
+                      onChange={(e) => setFacebook(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
 
               <button type="submit" className="btn-accent" style={{ marginTop: '10px' }} id="save-settings-submit">
                 Save General Settings
@@ -1101,30 +1121,32 @@ export default function AdminDashboard({ addToast }) {
           </div>
 
           {/* DEVELOPER EXPORT CENTER */}
-          <div className="dashboard-card" style={{ marginTop: '24px', border: '1px dashed var(--accent)' }}>
-            <h3 style={{ color: 'var(--accent)' }}>Developer Export Center</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '20px' }}>
-              Set up the storefront visually, then export your database and configurations. Send these files back to the AI assistant to permanently set them as the default catalog for all visitors on GitHub.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button 
-                type="button" 
-                className="btn-secondary" 
-                onClick={handleExportProductsJson}
-                style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <Download size={14} /> Export Products Database (JSON)
-              </button>
-              <button 
-                type="button" 
-                className="btn-secondary" 
-                onClick={handleExportSettingsJson}
-                style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <Download size={14} /> Export Settings & Config (JSON)
-              </button>
+          {user?.role === 'admin' && (
+            <div className="dashboard-card" style={{ marginTop: '24px', border: '1px dashed var(--accent)' }}>
+              <h3 style={{ color: 'var(--accent)' }}>Developer Export Center</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '20px' }}>
+                Set up the storefront visually, then export your database and configurations. Send these files back to the AI assistant to permanently set them as the default catalog for all visitors on GitHub.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={handleExportProductsJson}
+                  style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <Download size={14} /> Export Products Database (JSON)
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={handleExportSettingsJson}
+                  style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <Download size={14} /> Export Settings & Config (JSON)
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

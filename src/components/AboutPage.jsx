@@ -27,13 +27,13 @@ export default function AboutPage() {
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px' }}>
       <div className="admin-title-area" style={{ marginBottom: '40px', borderBottom: '1px solid var(--border-luxe)', paddingBottom: '20px' }}>
         <h1 style={{ fontSize: '36px' }}>OUR PHILOSOPHY</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Discover the progressive design philosophy behind the SNEEK brand</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Discover the progressive design philosophy behind the {shopSettings?.brand_name || 'SNEEK'} brand</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '50px', alignItems: 'center', marginBottom: '60px' }}>
         <div>
           <span className="hero-tag" style={{ color: 'var(--accent)', letterSpacing: '0.2em', fontSize: '11px', display: 'block', marginBottom: '16px' }}>
-            THE SNEEK MISSION
+            THE {shopSettings?.brand_name ? shopSettings.brand_name.toUpperCase() : 'SNEEK'} MISSION
           </span>
           <h2 
             style={{ 

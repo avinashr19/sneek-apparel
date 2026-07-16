@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { ShoppingBag, User, LogOut, Menu, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Navbar({ currentView, setCurrentView }) {
     const { cartCount, setIsCartOpen } = useCart();
     const { isAdmin, logout } = useAuth();
+    const { shopSettings } = useSettings();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleNavClick = (view, e) => {
@@ -17,17 +19,12 @@ export default function Navbar({ currentView, setCurrentView }) {
     return (
         <header className="site-header">
             <div className="header-container">
-                {/* LOGO */}
-                <a
-                    href="#"
-                    className="logo-link"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        setCurrentView('home');
-                    }}
-                >
-                    SNEEK<span>.</span>
-                </a>
+                {/* LOGO AREA */}
+                <div className="nav-logo">
+                    <a href="#" onClick={(e) => handleNavClick('home', e)} style={{ color: 'inherit', textDecoration: 'none' }}>
+                        {shopSettings?.brand_name || 'SNEEK'}<span>.</span>
+                    </a>
+                </div>
 
                 {/* DESKTOP NAVIGATION LINKS */}
                 <nav className="desktop-nav">
@@ -95,6 +92,12 @@ export default function Navbar({ currentView, setCurrentView }) {
             {/* MOBILE DROPDOWN MENU */}
             {isMobileMenuOpen && (
                 <div className="mobile-menu-dropdown">
+                    {/* MOBILE LOGO AREA */}
+                    <div className="nav-logo" style={{ margin: '0 auto', transform: 'translateX(-20px)' }}>
+                        <a href="#" onClick={(e) => handleNavClick('home', e)} style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {shopSettings?.brand_name || 'SNEEK'}<span>.</span>
+                        </a>
+                    </div>
                     <nav>
                         <ul className="mobile-navbar-links">
                             <li><a href="#" className={`nav-link ${currentView === 'home' ? 'active' : ''}`} onClick={(e) => handleNavClick('home', e)}>Home</a></li>

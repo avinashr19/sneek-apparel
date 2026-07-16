@@ -35,10 +35,10 @@ export default function CartDrawer({ addToast }) {
 
     const handleConfirmPayment = async () => {
         const productTextList = cart.map((item, idx) => {
-            return `${idx + 1}. ${item.product.name}\n   Size: ${item.selectedSize}\n   Color: ${item.selectedColor}\n   Qty: ${item.quantity}`;
-        }).join('\n\n');
+            return `${idx + 1}. ${item.product.name} (Size: ${item.selectedSize}, Color: ${item.selectedColor}) - Qty: ${item.quantity}`;
+        }).join('\n');
 
-        const msgText = `Hello SNEEK,\n\nI would like to enquire about these products.\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\n\nProducts:\n\n${productTextList}\n\nPlease contact me regarding availability.\n\nThank you.`;
+        const msgText = `Hello ${shopSettings?.brand_name || 'SNEEK'},\n\nI would like to enquire about these products.\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\n\nProducts:\n\n${productTextList}\n\nPlease contact me regarding availability.\n\nThank you.`;
 
         const cleanNum = (shopSettings.whatsapp || '+91 9876543210').replace(/[^0-9]/g, '');
         const waUrl = `https://wa.me/${cleanNum}?text=${encodeURIComponent(msgText)}`;

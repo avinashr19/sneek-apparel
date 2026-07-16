@@ -22,6 +22,12 @@ function AppContent() {
   const location = useLocation();
   const { shopSettings } = useSettings();
 
+  useEffect(() => {
+    if (shopSettings?.brand_name) {
+      document.title = `${shopSettings.brand_name} // Premium Menswear`;
+    }
+  }, [shopSettings?.brand_name]);
+
   // Map pathnames to views
   let currentView = 'home';
   if (location.pathname === '/shop') currentView = 'shop';

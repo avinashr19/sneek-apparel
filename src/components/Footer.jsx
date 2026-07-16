@@ -1,7 +1,10 @@
 import React from 'react';
 import { Globe, Share2, Mail } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Footer({ setCurrentView }) {
+  const { shopSettings } = useSettings();
+  
   return (
     <footer className="site-footer">
       <div className="footer-grid">
@@ -14,7 +17,7 @@ export default function Footer({ setCurrentView }) {
               setCurrentView('home');
             }}
           >
-            SNEEK<span>.</span>
+            {shopSettings?.brand_name || 'SNEEK'}<span>.</span>
           </a>
           <p>
             An progressive menswear concept specializing in techwear accents, oversized drapery, and minimalist color systems. Designed for utility.
@@ -58,7 +61,7 @@ export default function Footer({ setCurrentView }) {
       </div>
 
       <div className="footer-bottom">
-        <p>&copy; {new Date().getFullYear()} SNEEK Co. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} {shopSettings?.brand_name || 'SNEEK'} Co. All rights reserved.</p>
         <p>Crafted for modern streetwear aesthetics.</p>
       </div>
     </footer>

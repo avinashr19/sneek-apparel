@@ -14,12 +14,12 @@ export default function AdminLogin({ addToast }) {
         setLoading(true);
 
         // Add a slight artificial delay for luxury micro-animations and loading feel
-        setTimeout(() => {
-            const res = login(username, password);
+        setTimeout(async () => {
+            const res = await login(username, password);
             setLoading(false);
 
             if (res.success) {
-                addToast('Welcome back, Admin. Store management active.');
+                addToast('Authentication successful.');
             } else {
                 addToast(res.error, 'error');
             }
