@@ -1697,6 +1697,10 @@ button {
   display: none;
 }
 
+.mobile-filter-toggle {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .desktop-nav {
     display: none;
@@ -1719,6 +1723,8 @@ button {
     top: 100%;
     left: 0;
     width: 100%;
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
     background: rgba(12, 12, 14, 0.98);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border-luxe);
@@ -1741,11 +1747,13 @@ button {
     padding: 20px !important;
   }
 
-  .shop-sidebar {
-    position: static !important;
+  .sidebar-filters {
+    display: none;
     margin-bottom: 30px;
-    border-bottom: 1px solid var(--border-luxe);
-    padding-bottom: 20px;
+  }
+  
+  .sidebar-filters.open {
+    display: block;
   }
   
   .admin-layout {

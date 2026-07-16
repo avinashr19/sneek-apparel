@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
 import ProductCard from './ProductCard';
@@ -7,6 +7,7 @@ import ProductCard from './ProductCard';
 export default function ShopPage({ addToast }) {
     const { products } = useProducts();
     const { shopCategories } = useSettings();
+    const [showMobileFilters, setShowMobileFilters] = useState(false);
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const [activeSize, setActiveSize] = useState('All');
@@ -126,8 +127,18 @@ export default function ShopPage({ addToast }) {
             </div>
 
             <div className="filters-wrapper">
+                {/* MOBILE FILTERS TOGGLE */}
+                <button 
+                    className="mobile-filter-toggle btn-secondary" 
+                    onClick={() => setShowMobileFilters(!showMobileFilters)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}
+                >
+                    {showMobileFilters ? <X size={18} /> : <SlidersHorizontal size={18} />}
+                    {showMobileFilters ? 'Hide Filters' : 'Show Filters'}
+                </button>
+
                 {/* SIDEBAR FILTER PANEL */}
-                <aside className="sidebar-filters">
+                <aside className={`sidebar-filters ${showMobileFilters ? 'open' : ''}`}>
                     {/* SEARCH */}
                     <div className="filter-section">
                         <h4 className="filter-title">Search</h4>
