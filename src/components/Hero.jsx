@@ -42,8 +42,8 @@ export default function Hero({ setCurrentView }) {
         minHeight: '75vh',
         padding: '0',
         display: 'flex',
-        alignItems: currentSlide.text_y_pos || 'center',
-        justifyContent: currentSlide.text_x_pos || 'center',
+        alignItems: 'center',
+        justifyContent: 'center',
         background: 'var(--bg-darker)'
       }}
     >
@@ -67,14 +67,12 @@ export default function Hero({ setCurrentView }) {
       {/* Decorative Glow */}
       <div className="hero-glow" style={{ zIndex: 2 }}></div>
 
-      {/* Hero Content Box */}
       <div className="hero-content" style={{ 
         zIndex: 10, 
         padding: '80px 40px', 
         maxWidth: '900px',
-        transform: `scale(${currentSlide.text_scale || 1})`,
-        transformOrigin: `${currentSlide.text_x_pos === 'flex-start' ? 'left' : currentSlide.text_x_pos === 'flex-end' ? 'right' : 'center'} ${currentSlide.text_y_pos === 'flex-start' ? 'top' : currentSlide.text_y_pos === 'flex-end' ? 'bottom' : 'center'}`,
-        textAlign: currentSlide.text_x_pos === 'flex-start' ? 'left' : currentSlide.text_x_pos === 'flex-end' ? 'right' : 'center',
+        transform: `translate(${currentSlide.text_x_pos && currentSlide.text_x_pos !== 'center' && currentSlide.text_x_pos !== 'flex-start' && currentSlide.text_x_pos !== 'flex-end' ? currentSlide.text_x_pos : '0px'}, ${currentSlide.text_y_pos && currentSlide.text_y_pos !== 'center' && currentSlide.text_y_pos !== 'flex-start' && currentSlide.text_y_pos !== 'flex-end' ? currentSlide.text_y_pos : '0px'}) scale(${currentSlide.text_scale || 1})`,
+        textAlign: 'center',
         color: currentSlide.text_color || '#ffffff'
       }}>
         <span 
@@ -137,7 +135,7 @@ export default function Hero({ setCurrentView }) {
           {currentSlide.offer}
         </div>
 
-        <div className="hero-actions" style={{ justifyContent: currentSlide.text_x_pos === 'flex-start' ? 'flex-start' : currentSlide.text_x_pos === 'flex-end' ? 'flex-end' : 'center' }}>
+        <div className="hero-actions" style={{ justifyContent: 'center' }}>
           <button 
             className="btn-accent" 
             onClick={() => setCurrentView('shop')}

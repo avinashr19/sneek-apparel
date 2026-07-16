@@ -812,20 +812,12 @@ export default function AdminDashboard({ addToast }) {
               
               <div className="form-row">
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" htmlFor="slide-x-pos">Horizontal Position</label>
-                  <select id="slide-x-pos" className="form-input" value={newSlide.text_x_pos} onChange={(e) => setNewSlide(prev => ({ ...prev, text_x_pos: e.target.value }))}>
-                    <option value="flex-start">Left</option>
-                    <option value="center">Center</option>
-                    <option value="flex-end">Right</option>
-                  </select>
+                  <label className="form-label" htmlFor="slide-x-pos">Horizontal Offset (e.g. 0px, -100px, 20%)</label>
+                  <input type="text" id="slide-x-pos" className="form-input" placeholder="e.g. 0px" value={newSlide.text_x_pos} onChange={(e) => setNewSlide(prev => ({ ...prev, text_x_pos: e.target.value }))} />
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" htmlFor="slide-y-pos">Vertical Position</label>
-                  <select id="slide-y-pos" className="form-input" value={newSlide.text_y_pos} onChange={(e) => setNewSlide(prev => ({ ...prev, text_y_pos: e.target.value }))}>
-                    <option value="flex-start">Top</option>
-                    <option value="center">Center</option>
-                    <option value="flex-end">Bottom</option>
-                  </select>
+                  <label className="form-label" htmlFor="slide-y-pos">Vertical Offset (e.g. 0px, 100px, -10%)</label>
+                  <input type="text" id="slide-y-pos" className="form-input" placeholder="e.g. 0px" value={newSlide.text_y_pos} onChange={(e) => setNewSlide(prev => ({ ...prev, text_y_pos: e.target.value }))} />
                 </div>
               </div>
 
