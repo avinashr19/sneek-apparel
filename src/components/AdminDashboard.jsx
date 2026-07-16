@@ -506,43 +506,39 @@ export default function AdminDashboard({ addToast }) {
           </button>
         ))}
 
-        {user?.role === 'admin' && (
-          <>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '700', padding: '16px 12px 8px', letterSpacing: '0.05em' }}>Configuration</div>
-            {[
-              { id: 'settings', label: 'General Config', icon: <Settings size={16} /> },
-              { id: 'theme', label: 'Theme Settings', icon: <Palette size={16} /> },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                className={`nav-link`}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  background: activeTab === tab.id ? 'var(--bg-darker)' : 'transparent',
-                  color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: activeTab === tab.id ? '600' : '500',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  textAlign: 'left',
-                  width: '100%',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onClick={() => setActiveTab(tab.id)}
-                id={`tab-btn-${tab.id}`}
-              >
-                <div style={{ color: activeTab === tab.id ? 'var(--accent)' : 'inherit', display: 'flex' }}>
-                  {tab.icon}
-                </div>
-                {tab.label}
-              </button>
-            ))}
-          </>
-        )}
+        <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '700', padding: '16px 12px 8px', letterSpacing: '0.05em' }}>Configuration</div>
+        {[
+          { id: 'settings', label: 'General Config', icon: <Settings size={16} /> },
+          { id: 'theme', label: 'Theme Settings', icon: <Palette size={16} />, adminOnly: true },
+        ].filter(t => !t.adminOnly || user?.role === 'admin').map(tab => (
+          <button
+            key={tab.id}
+            className={`nav-link`}
+            style={{
+              padding: '10px 12px',
+              borderRadius: '8px',
+              background: activeTab === tab.id ? 'var(--bg-darker)' : 'transparent',
+              color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: activeTab === tab.id ? '600' : '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              textAlign: 'left',
+              width: '100%',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setActiveTab(tab.id)}
+            id={`tab-btn-${tab.id}`}
+          >
+            <div style={{ color: activeTab === tab.id ? 'var(--accent)' : 'inherit', display: 'flex' }}>
+              {tab.icon}
+            </div>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* TAB CONTENTS */}
