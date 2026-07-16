@@ -310,6 +310,22 @@ export default function AdminDashboard({ addToast }) {
     }
   };
 
+  const handleThemeToggle = (mode) => {
+    if (mode === 'dark') {
+      setPrimaryBgColor('#000000');
+      setFooterBgColor('#000000');
+      setBrandNameColor('#ffffff');
+      setMenuBgColor('rgba(0, 0, 0, 0.85)');
+      setMenuTextColor('#ffffff');
+    } else if (mode === 'light') {
+      setPrimaryBgColor('#ffffff');
+      setFooterBgColor('#ffffff');
+      setBrandNameColor('#000000');
+      setMenuBgColor('rgba(255, 255, 255, 0.85)');
+      setMenuTextColor('#000000');
+    }
+  };
+
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     await updateSettings({
@@ -1381,6 +1397,24 @@ export default function AdminDashboard({ addToast }) {
 
                   <div className="dashboard-card" style={{ breakInside: 'avoid', marginBottom: '24px' }}>
                     <h3 style={{ marginBottom: '20px' }}>Global Theme Colors</h3>
+                    
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', padding: '4px', background: 'var(--bg-darker)', borderRadius: '8px', width: 'fit-content' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => handleThemeToggle('dark')} 
+                        style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', background: primaryBgColor === '#000000' ? 'var(--accent)' : 'transparent', color: primaryBgColor === '#000000' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: '600', fontSize: '13px', transition: 'all 0.2s' }}
+                      >
+                        Dark Mode
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => handleThemeToggle('light')} 
+                        style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', background: primaryBgColor === '#ffffff' ? 'var(--accent)' : 'transparent', color: primaryBgColor === '#ffffff' ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: '600', fontSize: '13px', transition: 'all 0.2s' }}
+                      >
+                        Light Mode
+                      </button>
+                    </div>
+
                     <div className="form-row">
                       <div className="form-group" style={{ margin: 0 }}>
                         <label className="form-label" htmlFor="config-bg-color">Primary Background Color</label>
