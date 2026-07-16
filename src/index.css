@@ -1742,6 +1742,10 @@ button {
     padding: 0;
   }
 
+  .mobile-filter-toggle {
+    display: flex !important;
+  }
+
   .shop-layout {
     grid-template-columns: 1fr !important;
     padding: 20px !important;

@@ -76,7 +76,7 @@ export default function ShopPage({ addToast }) {
         if (activeColor !== 'All') {
             const activeLower = activeColor.toLowerCase();
             result = result.filter(p => 
-                p.colors && p.colors.some(c => c.trim().toLowerCase() === activeLower)
+                Array.isArray(p.colors) && p.colors.some(c => typeof c === 'string' && c.trim().toLowerCase() === activeLower)
             );
         }
 
@@ -140,7 +140,7 @@ export default function ShopPage({ addToast }) {
                 <button 
                     className="mobile-filter-toggle btn-secondary" 
                     onClick={() => setShowMobileFilters(!showMobileFilters)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}
+                    style={{ marginBottom: '20px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
                     {showMobileFilters ? <X size={18} /> : <SlidersHorizontal size={18} />}
                     {showMobileFilters ? 'Hide Filters' : 'Show Filters'}
@@ -212,7 +212,7 @@ export default function ShopPage({ addToast }) {
                             {colors.map(c => {
                                 const count = c === 'All'
                                     ? products.length
-                                    : products.filter(p => p.colors && p.colors.some(pc => pc.trim().toLowerCase() === c.toLowerCase())).length;
+                                    : products.filter(p => Array.isArray(p.colors) && p.colors.some(pc => typeof pc === 'string' && pc.trim().toLowerCase() === c.toLowerCase())).length;
 
                                 return (
                                     <button
