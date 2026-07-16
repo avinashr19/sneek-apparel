@@ -1684,3 +1684,113 @@ button {
   padding-top: 10px;
   color: var(--accent);
 }
+
+/* ========================================= */
+/* Responsive Overrides & Mobile Navigation  */
+/* ========================================= */
+
+.mobile-menu-btn {
+  display: none;
+}
+
+.mobile-menu-dropdown {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .desktop-nav {
+    display: none;
+  }
+  
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--text-primary);
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+  }
+
+  .mobile-menu-dropdown {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: rgba(12, 12, 14, 0.98);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-luxe);
+    padding: 30px 20px;
+    z-index: 90;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  }
+
+  .mobile-navbar-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: center;
+    padding: 0;
+  }
+
+  .shop-layout {
+    grid-template-columns: 1fr !important;
+    padding: 20px !important;
+  }
+
+  .shop-sidebar {
+    position: static !important;
+    margin-bottom: 30px;
+    border-bottom: 1px solid var(--border-luxe);
+    padding-bottom: 20px;
+  }
+  
+  .admin-layout {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 38px !important;
+    line-height: 1.1 !important;
+  }
+  .hero-content p {
+    font-size: 16px !important;
+  }
+  
+  .footer-container {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+    gap: 40px !important;
+  }
+  
+  .footer-col {
+    align-items: center;
+  }
+
+  /* Admin dashboard tweaks for mobile */
+  .admin-header-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 15px;
+  }
+  
+  .dashboard-card {
+    padding: 20px !important;
+  }
+  
+  .settings-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 500px) {
+  .cart-drawer {
+    width: 100% !important;
+    border-left: none !important;
+  }
+}

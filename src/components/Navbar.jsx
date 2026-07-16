@@ -1,11 +1,18 @@
-import React from 'react';
-import { ShoppingBag, User, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShoppingBag, User, LogOut, Menu, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar({ currentView, setCurrentView }) {
     const { cartCount, setIsCartOpen } = useCart();
     const { isAdmin, logout } = useAuth();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const handleNavClick = (view, e) => {
+        e.preventDefault();
+        setCurrentView(view);
+        setIsMobileMenuOpen(false);
+    };
 
     return (
         <header className="site-header">
@@ -22,81 +29,27 @@ export default function Navbar({ currentView, setCurrentView }) {
                     SNEEK<span>.</span>
                 </a>
 
-                {/* NAVIGATION LINKS */}
-                <nav>
+                {/* DESKTOP NAVIGATION LINKS */}
+                <nav className="desktop-nav">
                     <ul className="navbar-links">
                         <li>
-                            <a
-                                href="#"
-                                className={`nav-link ${currentView === 'home' ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setCurrentView('home');
-                                }}
-                            >
-                                Home
-                            </a>
+                            <a href="#" className={`nav-link ${currentView === 'home' ? 'active' : ''}`} onClick={(e) => handleNavClick('home', e)}>Home</a>
                         </li>
                         <li>
-                            <a
-                                href="#"
-                                className={`nav-link ${currentView === 'shop' ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setCurrentView('shop');
-                                }}
-                            >
-                                Shop
-                            </a>
+                            <a href="#" className={`nav-link ${currentView === 'shop' ? 'active' : ''}`} onClick={(e) => handleNavClick('shop', e)}>Shop</a>
                         </li>
                         <li>
-                            <a
-                                href="#"
-                                className={`nav-link ${currentView === 'about' ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setCurrentView('about');
-                                }}
-                            >
-                                About
-                            </a>
+                            <a href="#" className={`nav-link ${currentView === 'about' ? 'active' : ''}`} onClick={(e) => handleNavClick('about', e)}>About</a>
                         </li>
                         <li>
-                            <a
-                                href="#"
-                                className={`nav-link ${currentView === 'locations' ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setCurrentView('locations');
-                                }}
-                            >
-                                Showrooms
-                            </a>
+                            <a href="#" className={`nav-link ${currentView === 'locations' ? 'active' : ''}`} onClick={(e) => handleNavClick('locations', e)}>Showrooms</a>
                         </li>
                         <li>
-                            <a
-                                href="#"
-                                className={`nav-link ${currentView === 'contact' ? 'active' : ''}`}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setCurrentView('contact');
-                                }}
-                            >
-                                Contact
-                            </a>
+                            <a href="#" className={`nav-link ${currentView === 'contact' ? 'active' : ''}`} onClick={(e) => handleNavClick('contact', e)}>Contact</a>
                         </li>
                         {isAdmin && (
                             <li>
-                                <a
-                                    href="#"
-                                    className={`nav-link ${currentView === 'admin' ? 'active' : ''}`}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        setCurrentView('admin');
-                                    }}
-                                >
-                                    Admin
-                                </a>
+                                <a href="#" className={`nav-link ${currentView === 'admin' ? 'active' : ''}`} onClick={(e) => handleNavClick('admin', e)}>Admin</a>
                             </li>
                         )}
                     </ul>
@@ -128,8 +81,34 @@ export default function Navbar({ currentView, setCurrentView }) {
                         <ShoppingBag size={22} />
                         {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
                     </button>
+
+                    {/* MOBILE MENU TOGGLE */}
+                    <button 
+                        className="header-btn mobile-menu-btn"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
                 </div>
             </div>
+
+            {/* MOBILE DROPDOWN MENU */}
+            {isMobileMenuOpen && (
+                <div className="mobile-menu-dropdown">
+                    <nav>
+                        <ul className="mobile-navbar-links">
+                            <li><a href="#" className={`nav-link ${currentView === 'home' ? 'active' : ''}`} onClick={(e) => handleNavClick('home', e)}>Home</a></li>
+                            <li><a href="#" className={`nav-link ${currentView === 'shop' ? 'active' : ''}`} onClick={(e) => handleNavClick('shop', e)}>Shop</a></li>
+                            <li><a href="#" className={`nav-link ${currentView === 'about' ? 'active' : ''}`} onClick={(e) => handleNavClick('about', e)}>About</a></li>
+                            <li><a href="#" className={`nav-link ${currentView === 'locations' ? 'active' : ''}`} onClick={(e) => handleNavClick('locations', e)}>Showrooms</a></li>
+                            <li><a href="#" className={`nav-link ${currentView === 'contact' ? 'active' : ''}`} onClick={(e) => handleNavClick('contact', e)}>Contact</a></li>
+                            {isAdmin && (
+                                <li><a href="#" className={`nav-link ${currentView === 'admin' ? 'active' : ''}`} onClick={(e) => handleNavClick('admin', e)}>Admin</a></li>
+                            )}
+                        </ul>
+                    </nav>
+                </div>
+            )}
         </header>
     );
 }
