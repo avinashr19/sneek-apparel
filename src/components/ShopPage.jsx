@@ -30,12 +30,18 @@ export default function ShopPage({ addToast }) {
     // Available sizes
     const sizes = ['All', 'S', 'M', 'L', 'XL', 'ONESIZE'];
 
-    // Extract colors dynamically
+    // Extract colors dynamically (case-insensitive and trimmed)
     const colors = useMemo(() => {
         const set = new Set();
         products.forEach(p => {
             if (p.colors && Array.isArray(p.colors)) {
-                p.colors.forEach(c => set.add(c));
+                p.colors.forEach(c => {
+                    if (c && c.trim()) {
+                        // Capitalize each word for display
+                        const formatted = c.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+                        set.add(formatted);
+                    }
+                });
             }
         });
         return ['All', ...Array.from(set)];
@@ -66,9 +72,12 @@ export default function ShopPage({ addToast }) {
             result = result.filter(p => p.sizes && p.sizes.includes(activeSize));
         }
 
-        // Color filter
+        // Color filter (case-insensitive)
         if (activeColor !== 'All') {
-            result = result.filter(p => p.colors && p.colors.includes(activeColor));
+            const activeLower = activeColor.toLowerCase();
+            result = result.filter(p => 
+                p.colors && p.colors.some(c => c.trim().toLowerCase() === activeLower)
+            );
         }
 
         // Min price
@@ -203,7 +212,7 @@ export default function ShopPage({ addToast }) {
                             {colors.map(c => {
                                 const count = c === 'All'
                                     ? products.length
-                                    : products.filter(p => p.colors && p.colors.includes(c)).length;
+                                    : products.filter(p => p.colors && p.colors.some(pc => pc.trim().toLowerCase() === c.toLowerCase())).length;
 
                                 return (
                                     <button

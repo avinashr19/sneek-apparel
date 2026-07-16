@@ -21,6 +21,7 @@ export const SettingsProvider = ({ children }) => {
     const [locations, setLocations] = useState([]);
     const [shopCategories, setShopCategories] = useState([]);
     const [shopSettings, setShopSettings] = useState(DEFAULT_SETTINGS);
+    const [storeReviews, setStoreReviews] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Apply CSS theme variables
@@ -39,17 +40,19 @@ export const SettingsProvider = ({ children }) => {
     // Fetch all settings data from Supabase
     const fetchAll = async () => {
         setLoading(true);
-        const [slidesRes, locRes, catRes, settingsRes] = await Promise.all([
+        const [slidesRes, locRes, catRes, settingsRes, reviewsRes] = await Promise.all([
             supabase.from('banner_slides').select('*').order('sort_order'),
             supabase.from('locations').select('*').order('created_at'),
             supabase.from('categories').select('*').order('name'),
             supabase.from('shop_settings').select('*').eq('id', 1).single(),
+            supabase.from('store_reviews').select('*').order('created_at', { ascending: false }),
         ]);
 
         if (slidesRes.data) setBannerSlides(slidesRes.data);
         if (locRes.data) setLocations(locRes.data);
         if (catRes.data) setShopCategories(catRes.data.map(c => c.name));
         if (settingsRes.data) setShopSettings(settingsRes.data);
+        if (reviewsRes.data) setStoreReviews(reviewsRes.data);
         setLoading(false);
     };
 
@@ -113,6 +116,21 @@ export const SettingsProvider = ({ children }) => {
         if (!error) setShopSettings(updated);
     };
 
+    // --- Reviews ---
+    const addReview = async (review) => {
+        const { data, error } = await supabase
+            .from('store_reviews')
+            .insert([review])
+            .select()
+            .single();
+        if (!error && data) setStoreReviews(prev => [data, ...prev]);
+    };
+
+    const removeReview = async (id) => {
+        await supabase.from('store_reviews').delete().eq('id', id);
+        setStoreReviews(prev => prev.filter(r => r.id !== id));
+    };
+
     // Convenience: map DB field names to old shape for backward compat
     const mappedSettings = {
         ...shopSettings,
@@ -129,6 +147,7 @@ export const SettingsProvider = ({ children }) => {
             locations,
             shopCategories,
             shopSettings: mappedSettings,
+            storeReviews,
             loading,
             addSlide,
             removeSlide,
@@ -137,6 +156,8 @@ export const SettingsProvider = ({ children }) => {
             addCategory,
             removeCategory,
             updateSettings,
+            addReview,
+            removeReview,
             refetch: fetchAll,
         }}>
             {children}

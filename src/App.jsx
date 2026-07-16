@@ -14,6 +14,7 @@ import ProductCard from './components/ProductCard';
 import ContactPage from './components/ContactPage';
 import AboutPage from './components/AboutPage';
 import LocationsPage from './components/LocationsPage';
+import ReviewsSection from './components/ReviewsSection';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 
 function AppContent() {
@@ -130,6 +131,7 @@ function AppContent() {
                   </div>
                 )}
               </section>
+              <ReviewsSection />
             </div>
           } />
           <Route path="/shop" element={<ShopPage addToast={addToast} />} />

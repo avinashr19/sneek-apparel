@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Tag, IndianRupee, Layers, PlusCircle, X, Shield, Settings, Sliders, MapPin, Edit3, Download, Upload, Image, MessageSquare, ShoppingBag } from 'lucide-react';
+import { Plus, Trash2, Tag, IndianRupee, Layers, PlusCircle, X, Shield, Settings, Sliders, MapPin, Edit3, Download, Upload, Image, MessageSquare, ShoppingBag, Star } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
 import { supabase } from '../lib/supabase';
@@ -18,7 +18,10 @@ export default function AdminDashboard({ addToast }) {
     removeLocation, 
     addCategory,
     removeCategory,
-    updateSettings 
+    updateSettings,
+    storeReviews,
+    addReview,
+    removeReview
   } = useSettings();
 
   const [activeTab, setActiveTab] = useState('garments');
@@ -75,6 +78,16 @@ export default function AdminDashboard({ addToast }) {
   const [whatsapp, setWhatsapp] = useState('');
   const [instagram, setInstagram] = useState('');
   const [facebook, setFacebook] = useState('');
+  const [mapEmbedUrl, setMapEmbedUrl] = useState('');
+
+  // Review Form state
+  const [newReview, setNewReview] = useState({
+    author_name: '',
+    rating: 5,
+    text: '',
+    time_text: '',
+    profile_photo_url: ''
+  });
 
   useEffect(() => {
     if (shopSettings) {
@@ -86,6 +99,7 @@ export default function AdminDashboard({ addToast }) {
       setWhatsapp(shopSettings.whatsapp || '');
       setInstagram(shopSettings.instagram || '');
       setFacebook(shopSettings.facebook || '');
+      setMapEmbedUrl(shopSettings.map_embed_url || '');
     }
   }, [shopSettings]);
 
@@ -207,9 +221,28 @@ export default function AdminDashboard({ addToast }) {
       about_story: aboutStory,
       whatsapp,
       instagram,
-      facebook
+      facebook,
+      map_embed_url: mapEmbedUrl
     });
     addToast('General store settings updated successfully.');
+  };
+
+  const handleAddReview = async (e) => {
+    e.preventDefault();
+    if (!newReview.author_name || !newReview.text) {
+      addToast('Review author and text are required.', 'error');
+      return;
+    }
+    await addReview(newReview);
+    addToast('Review added successfully.');
+    setNewReview({ author_name: '', rating: 5, text: '', time_text: '', profile_photo_url: '' });
+  };
+
+  const handleDeleteReview = async (id) => {
+    if (confirm('Delete this review?')) {
+      await removeReview(id);
+      addToast('Review deleted.', 'error');
+    }
   };
 
   const handleExportProductsJson = () => {
@@ -301,6 +334,7 @@ export default function AdminDashboard({ addToast }) {
           { id: 'categories', label: 'Categories', icon: <Tag size={14} /> },
           { id: 'carousel', label: 'Home Carousel', icon: <Sliders size={14} /> },
           { id: 'locations', label: 'Showrooms', icon: <MapPin size={14} /> },
+          { id: 'reviews', label: 'Reviews', icon: <Star size={14} /> },
           { id: 'settings', label: 'General Config', icon: <Settings size={14} /> },
           { id: 'feedback', label: 'Feedback', icon: <MessageSquare size={14} /> },
           { id: 'orderlogs', label: 'Order Logs', icon: <ShoppingBag size={14} /> },
@@ -829,6 +863,101 @@ export default function AdminDashboard({ addToast }) {
         </div>
       )}
 
+      {/* TAB: REVIEWS */}
+      {activeTab === 'reviews' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '30px', alignItems: 'start' }}>
+          <div>
+            <div className="dashboard-card">
+              <h3 style={{ marginBottom: '6px' }}>Manage Customer Reviews</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px' }}>
+                These reviews are displayed on the Home Page to build trust.
+              </p>
+              
+              {(!storeReviews || storeReviews.length === 0) ? (
+                <div className="no-products" style={{ padding: '60px' }}>
+                  <h3>No reviews added yet</h3>
+                  <p>Add some customer feedback to display on the storefront.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {storeReviews.map(review => (
+                    <div key={review.id} style={{
+                      background: 'var(--bg-darker)',
+                      border: '1px solid var(--border-luxe)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      position: 'relative'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <strong style={{ fontSize: '15px' }}>{review.author_name}</strong>
+                        <button 
+                          onClick={() => handleDeleteReview(review.id)}
+                          className="btn-danger" 
+                          style={{ padding: '4px', background: 'transparent' }}
+                          title="Delete Review"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <div style={{ color: '#fbbc05', marginBottom: '10px' }}>
+                        {Array(review.rating).fill('★').join('')}
+                      </div>
+                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>"{review.text}"</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="dashboard-card" style={{ position: 'sticky', top: '100px' }}>
+            <h3>Add New Review</h3>
+            <form onSubmit={handleAddReview} className="add-product-form" style={{ marginTop: '20px' }}>
+              <div className="form-group">
+                <label className="form-label">Customer Name</label>
+                <input 
+                  type="text" className="form-input" required
+                  value={newReview.author_name} onChange={e => setNewReview({...newReview, author_name: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Rating (1-5)</label>
+                <input 
+                  type="number" min="1" max="5" className="form-input" required
+                  value={newReview.rating} onChange={e => setNewReview({...newReview, rating: parseInt(e.target.value)})}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Time Text (e.g., '2 weeks ago')</label>
+                <input 
+                  type="text" className="form-input" 
+                  value={newReview.time_text} onChange={e => setNewReview({...newReview, time_text: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Profile Photo URL (optional)</label>
+                <input 
+                  type="url" className="form-input" placeholder="https://"
+                  value={newReview.profile_photo_url} onChange={e => setNewReview({...newReview, profile_photo_url: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Review Text</label>
+                <textarea 
+                  className="form-input" rows={4} required style={{ resize: 'vertical' }}
+                  value={newReview.text} onChange={e => setNewReview({...newReview, text: e.target.value})}
+                />
+              </div>
+              <button type="submit" className="btn-accent" style={{ width: '100%', justifyContent: 'center' }}>
+                <Plus size={16} /> Add Review
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* TAB 4: GENERAL CONFIGURATIONS */}
       {activeTab === 'settings' && (
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
@@ -953,6 +1082,25 @@ export default function AdminDashboard({ addToast }) {
                   value={facebook} 
                   onChange={(e) => setFacebook(e.target.value)}
                 />
+              </div>
+
+              <h4 style={{ textTransform: 'uppercase', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-luxe)', paddingTop: '16px', marginTop: '10px' }}>
+                Storefront Map
+              </h4>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label" htmlFor="config-map">Google Maps Embed URL</label>
+                <input 
+                  type="text" 
+                  id="config-map" 
+                  className="form-input" 
+                  placeholder="e.g. https://www.google.com/maps/embed?pb=..." 
+                  value={mapEmbedUrl} 
+                  onChange={(e) => setMapEmbedUrl(e.target.value)}
+                />
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                  This map will be displayed on the Showrooms / Locations page.
+                </span>
               </div>
 
               <button type="submit" className="btn-accent" style={{ marginTop: '10px' }} id="save-settings-submit">
