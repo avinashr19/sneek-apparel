@@ -1,11 +1,38 @@
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 export default function ProductCard({ product, addToast }) {
     const { addToCart } = useCart();
     const [selectedSize, setSelectedSize] = useState(product.sizes[0] || '');
     const [selectedColor, setSelectedColor] = useState(product.colors[0] || '');
+    const [hoverIndex, setHoverIndex] = useState(0);
+    const [isHovering, setIsHovering] = useState(false);
+
+    const images = product.images && product.images.length > 0 
+        ? product.images 
+        : [product.img_url || product.img].filter(Boolean);
+
+    const handleNext = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (images.length <= 1) return;
+        setHoverIndex(prev => (prev + 1) % images.length);
+    };
+
+    const handlePrev = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (images.length <= 1) return;
+        setHoverIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
+    };
+
+    const handleMouseEnter = () => setIsHovering(true);
+
+    const handleMouseLeave = () => {
+        setIsHovering(false);
+        setHoverIndex(0);
+    };
 
     const handleAddToCart = () => {
         addToCart(product, 1, selectedSize, selectedColor);
@@ -16,13 +43,76 @@ export default function ProductCard({ product, addToast }) {
 
     return (
         <article className="product-card" data-product-id={product.id}>
-            <div className="product-carousel">
-                <img
-                    src={product.img_url || product.img}
-                    alt={product.name}
-                    className="product-img"
-                    loading="lazy"
-                />
+            <div 
+                className="product-carousel"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                style={{ position: 'relative', overflow: 'hidden' }}
+            >
+                {images.map((imgUrl, idx) => (
+                    <img
+                        key={idx}
+                        src={imgUrl}
+                        alt={`${product.name} ${idx + 1}`}
+                        className="product-img"
+                        loading={idx === 0 ? "lazy" : "eager"}
+                        style={{
+                            position: idx === 0 ? 'relative' : 'absolute',
+                            top: 0, 
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            opacity: (hoverIndex === idx || (idx === 0 && !isHovering)) ? 1 : 0,
+                            transition: 'opacity 0.2s ease-in-out',
+                            zIndex: hoverIndex === idx ? 2 : 1
+                        }}
+                    />
+                ))}
+                
+                {images.length > 1 && isHovering && (
+                    <>
+                        <button 
+                            onClick={handlePrev}
+                            style={{
+                                position: 'absolute', top: '50%', left: '8px', transform: 'translateY(-50%)',
+                                background: 'rgba(12, 12, 14, 0.6)', color: 'white', border: 'none', borderRadius: '50%',
+                                width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', zIndex: 20, backdropFilter: 'blur(4px)'
+                            }}
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        <button 
+                            onClick={handleNext}
+                            style={{
+                                position: 'absolute', top: '50%', right: '8px', transform: 'translateY(-50%)',
+                                background: 'rgba(12, 12, 14, 0.6)', color: 'white', border: 'none', borderRadius: '50%',
+                                width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', zIndex: 20, backdropFilter: 'blur(4px)'
+                            }}
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    </>
+                )}
+                
+                {images.length > 1 && isHovering && (
+                    <div style={{ position: 'absolute', bottom: '8px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '4px', zIndex: 10 }}>
+                        {images.map((_, idx) => (
+                            <div 
+                                key={idx} 
+                                style={{
+                                    height: '2px',
+                                    width: '12px',
+                                    background: hoverIndex === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                                    borderRadius: '1px',
+                                    transition: 'background 0.2s ease'
+                                }}
+                            />
+                        ))}
+                    </div>
+                )}
 
                 {product.tags && product.tags.length > 0 && (
                     <div className="card-overlay">

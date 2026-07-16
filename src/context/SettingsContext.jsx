@@ -27,12 +27,19 @@ export const SettingsProvider = ({ children }) => {
     // Apply CSS theme variables from database
     useEffect(() => {
         const root = document.documentElement;
-        root.style.setProperty('--bg-darker', shopSettings?.primary_bg_color || '#0c0c0e');
+        root.style.setProperty('--bg-main', shopSettings?.primary_bg_color || '#0c0c0e');
+        root.style.setProperty('--bg-darker', shopSettings?.primary_bg_color || '#08080a');
         root.style.setProperty('--bg-card', '#141418'); 
         root.style.setProperty('--accent', shopSettings?.accent_color || '#d2ff00');
         root.style.setProperty('--brand-name-color', shopSettings?.brand_name_color || '#ffffff');
         root.style.setProperty('--text-primary', '#ffffff');
         root.style.setProperty('--border-luxe', '#24242c');
+        
+        root.style.setProperty('--menu-bg-color', shopSettings?.menu_bg_color || 'rgba(12, 12, 14, 0.85)');
+        root.style.setProperty('--menu-text-color', shopSettings?.menu_text_color || '#8e8f96');
+        
+        root.style.setProperty('--footer-bg-color', shopSettings?.footer_bg_color || '#e31e24'); // default red like screenshot
+        root.style.setProperty('--footer-text-color', shopSettings?.footer_text_color || '#ffffff');
         
         const accent = shopSettings?.accent_color || '#d2ff00';
         root.style.setProperty('--accent-soft', accent + '1a');
@@ -41,12 +48,20 @@ export const SettingsProvider = ({ children }) => {
         root.style.setProperty('--brand-font-size', shopSettings?.brand_name_size || 'inherit');
         root.style.setProperty('--brand-font-weight', shopSettings?.brand_name_weight || 'bold');
         root.style.setProperty('--brand-font-family', shopSettings?.brand_name_font || 'inherit');
+        root.style.setProperty('--brand-logo-width', shopSettings?.brand_logo_width || '150px');
+        root.style.setProperty('--brand-logo-height', shopSettings?.brand_logo_height || '100px');
     }, [
         shopSettings?.primary_bg_color, 
         shopSettings?.accent_color,
         shopSettings?.brand_name_size,
         shopSettings?.brand_name_weight,
-        shopSettings?.brand_name_font
+        shopSettings?.brand_name_font,
+        shopSettings?.brand_logo_width,
+        shopSettings?.brand_logo_height,
+        shopSettings?.menu_bg_color,
+        shopSettings?.menu_text_color,
+        shopSettings?.footer_bg_color,
+        shopSettings?.footer_text_color
     ]);
 
     // Fetch all settings data from Supabase
@@ -84,6 +99,24 @@ export const SettingsProvider = ({ children }) => {
     const removeSlide = async (id) => {
         await supabase.from('banner_slides').delete().eq('id', id);
         setBannerSlides(prev => prev.filter(s => s.id !== id));
+    };
+
+    const updateSlide = async (id, patch) => {
+        const payload = { ...patch };
+        if (payload.img) {
+            payload.img_url = payload.img;
+            delete payload.img;
+        }
+        const { data, error } = await supabase
+            .from('banner_slides')
+            .update(payload)
+            .eq('id', id)
+            .select()
+            .single();
+        
+        if (!error && data) {
+            setBannerSlides(prev => prev.map(s => s.id === id ? data : s));
+        }
     };
 
     // --- Locations ---
@@ -163,6 +196,7 @@ export const SettingsProvider = ({ children }) => {
             loading,
             addSlide,
             removeSlide,
+            updateSlide,
             addLocation,
             removeLocation,
             addCategory,

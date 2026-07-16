@@ -9,7 +9,7 @@ import ImageUpload from './ImageUpload';
 import RichTextEditor from './RichTextEditor';
 
 export default function AdminDashboard({ addToast }) {
-  const { products, addNewProduct, deleteProduct } = useProducts();
+  const { products, addNewProduct, deleteProduct, bulkDeleteProducts, updateProduct } = useProducts();
   const { user } = useAuth();
   const { 
     bannerSlides, 
@@ -18,6 +18,7 @@ export default function AdminDashboard({ addToast }) {
     shopSettings, 
     addSlide, 
     removeSlide, 
+    updateSlide,
     addLocation, 
     removeLocation, 
     addCategory,
@@ -33,6 +34,7 @@ export default function AdminDashboard({ addToast }) {
   const [feedback, setFeedback] = useState([]);
   const [orderLogs, setOrderLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState([]);
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -63,6 +65,7 @@ export default function AdminDashboard({ addToast }) {
     offer: '',
     img: ''
   });
+  const [editSlideId, setEditSlideId] = useState(null);
 
   // Location Form state
   const [newLoc, setNewLoc] = useState({
@@ -92,6 +95,15 @@ export default function AdminDashboard({ addToast }) {
   const [brandNameFont, setBrandNameFont] = useState('inherit');
   const [navAnimation, setNavAnimation] = useState('fade');
   const [aboutImageUrl, setAboutImageUrl] = useState('');
+  const [brandLogoUrl, setBrandLogoUrl] = useState('');
+  const [brandLogoWidth, setBrandLogoWidth] = useState('150px');
+  const [brandLogoHeight, setBrandLogoHeight] = useState('100px');
+  const [menuBgColor, setMenuBgColor] = useState('rgba(12, 12, 14, 0.85)');
+  const [menuTextColor, setMenuTextColor] = useState('#8e8f96');
+  const [footerBgColor, setFooterBgColor] = useState('#e31e24');
+  const [footerTextColor, setFooterTextColor] = useState('#ffffff');
+  const [footerBio, setFooterBio] = useState('Weft Denim crafts sustainable, comfortable and stylish denim & footwear for modern living. Visit our store or order via WhatsApp.');
+  const [footerCopyrightText, setFooterCopyrightText] = useState('© 2026 Weft Denim · Crafted in Hyderabad · Developed by Webtechie');
 
   // Review Form state
   const [newReview, setNewReview] = useState({
@@ -121,6 +133,15 @@ export default function AdminDashboard({ addToast }) {
       setBrandNameFont(shopSettings.brand_name_font || 'inherit');
       setNavAnimation(shopSettings.nav_animation || 'fade');
       setAboutImageUrl(shopSettings.about_image_url || '');
+      setBrandLogoUrl(shopSettings.brand_logo_url || '');
+      setBrandLogoWidth(shopSettings.brand_logo_width || '150px');
+      setBrandLogoHeight(shopSettings.brand_logo_height || '100px');
+      setMenuBgColor(shopSettings.menu_bg_color || 'rgba(12, 12, 14, 0.85)');
+      setMenuTextColor(shopSettings.menu_text_color || '#8e8f96');
+      setFooterBgColor(shopSettings.footer_bg_color || '#e31e24');
+      setFooterTextColor(shopSettings.footer_text_color || '#ffffff');
+      setFooterBio(shopSettings.footer_bio || 'Weft Denim crafts sustainable, comfortable and stylish denim & footwear for modern living. Visit our store or order via WhatsApp.');
+      setFooterCopyrightText(shopSettings.footer_copyright_text || '© 2026 Weft Denim · Crafted in Hyderabad · Developed by Webtechie');
     }
   }, [shopSettings]);
 
@@ -163,7 +184,35 @@ export default function AdminDashboard({ addToast }) {
     if (confirm(`Are you sure you want to delete "${name}" from the store catalog?`)) {
       await deleteProduct(id);
       addToast(`Deleted ${name} from catalog.`, 'error');
+      setSelectedProductIds(prev => prev.filter(pid => pid !== id));
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProductIds.length === 0) return;
+    if (confirm(`Are you sure you want to delete ${selectedProductIds.length} products from the store catalog?`)) {
+      const { error } = await bulkDeleteProducts(selectedProductIds);
+      if (error) {
+        addToast('Failed to delete selected products.', 'error');
+      } else {
+        addToast(`Deleted ${selectedProductIds.length} products from catalog.`, 'error');
+        setSelectedProductIds([]);
+      }
+    }
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedProductIds(paginatedLedgerProducts.map(p => p.id));
+    } else {
+      setSelectedProductIds([]);
+    }
+  };
+
+  const handleSelectProduct = (id) => {
+    setSelectedProductIds(prev => 
+      prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+    );
   };
 
   const handleAddSlide = async (e) => {
@@ -173,10 +222,30 @@ export default function AdminDashboard({ addToast }) {
       return;
     }
 
-    await addSlide(newSlide);
-    addToast('New homepage banner slide added successfully.');
+    if (editSlideId) {
+      await updateSlide(editSlideId, newSlide);
+      addToast('Homepage banner slide updated successfully.');
+      setEditSlideId(null);
+    } else {
+      await addSlide(newSlide);
+      addToast('New homepage banner slide added successfully.');
+    }
     
     setNewSlide({ tag: '', title: '', desc: '', offer: '', img: '' });
+  };
+
+  const handleEditSlide = (slide) => {
+    setEditSlideId(slide.id);
+    setNewSlide({
+      tag: slide.tag || '',
+      title: slide.title || '',
+      desc: slide.desc || '',
+      offer: slide.offer || '',
+      img: slide.img_url || slide.img || ''
+    });
+    // Scroll up to form
+    const formEl = document.getElementById('add-slide-submit');
+    if (formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   const handleDeleteSlide = async (id) => {
@@ -220,6 +289,15 @@ export default function AdminDashboard({ addToast }) {
     }
   };
 
+  const handleToggleFeatured = async (id, currentStatus, name) => {
+    try {
+      await updateProduct(id, { featured: !currentStatus });
+      addToast(`Product "${name}" is now ${!currentStatus ? 'Featured' : 'Unfeatured'}.`);
+    } catch (err) {
+      addToast(`Failed to update status for "${name}".`, 'error');
+    }
+  };
+
   const handleDeleteCategory = (catName) => {
     const matchCount = products.filter(p => p.category === catName).length;
     let message = `Are you sure you want to delete category "${catName}"?`;
@@ -251,7 +329,16 @@ export default function AdminDashboard({ addToast }) {
       brand_name_weight: brandNameWeight,
       brand_name_font: brandNameFont,
       nav_animation: navAnimation,
-      about_image_url: aboutImageUrl
+      about_image_url: aboutImageUrl,
+      brand_logo_url: brandLogoUrl,
+      brand_logo_width: brandLogoWidth,
+      brand_logo_height: brandLogoHeight,
+      menu_bg_color: menuBgColor,
+      menu_text_color: menuTextColor,
+      footer_bg_color: footerBgColor,
+      footer_text_color: footerTextColor,
+      footer_bio: footerBio,
+      footer_copyright_text: footerCopyrightText
     });
     addToast('General store settings updated successfully.');
   };
@@ -342,6 +429,15 @@ export default function AdminDashboard({ addToast }) {
 
         {activeTab === 'garments' && (
           <div className="admin-sub-actions">
+            {selectedProductIds.length > 0 && (
+              <button 
+                className="btn-accent" 
+                onClick={handleBulkDelete}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#ff4444', borderColor: '#ff4444' }}
+              >
+                <Trash2 size={18} /> Delete Selected ({selectedProductIds.length})
+              </button>
+            )}
             <button 
               className="btn-accent" 
               onClick={() => setShowAddModal(true)}
@@ -447,26 +543,43 @@ export default function AdminDashboard({ addToast }) {
                 <table className="luxe-table">
                   <thead>
                     <tr>
+                      <th style={{ width: '40px', textAlign: 'center' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={paginatedLedgerProducts.length > 0 && selectedProductIds.length === paginatedLedgerProducts.length}
+                          onChange={handleSelectAll}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </th>
                       <th>Product Details</th>
                       <th>Category</th>
                       <th>Sizes</th>
                       <th>Price</th>
+                      <th style={{ textAlign: 'center' }}>Featured</th>
                       <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {products.length === 0 ? (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                        <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
                           Catalog is empty. Add a product manually or upload a batch file.
                         </td>
                       </tr>
                     ) : (
                       paginatedLedgerProducts.map(p => (
-                        <tr key={p.id} id={`ledger-row-${p.id.toLowerCase()}`}>
+                        <tr key={p.id} id={`ledger-row-${p.id.toLowerCase()}`} className={selectedProductIds.includes(p.id) ? 'selected-row' : ''}>
+                          <td style={{ textAlign: 'center' }}>
+                            <input 
+                              type="checkbox"
+                              checked={selectedProductIds.includes(p.id)}
+                              onChange={() => handleSelectProduct(p.id)}
+                              style={{ cursor: 'pointer' }}
+                            />
+                          </td>
                           <td>
                             <div className="table-product-cell">
-                              <img src={p.img} alt={p.name} className="table-product-img" />
+                              <img src={(p.images && p.images[0]) || p.img_url || p.img} alt={p.name} className="table-product-img" />
                               <div>
                                 <div className="table-product-name">{p.name}</div>
                                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {p.id}</span>
@@ -485,6 +598,21 @@ export default function AdminDashboard({ addToast }) {
                              <span style={{ fontFamily: 'var(--font-serif)', fontWeight: '700' }}>
                                ₹{parseFloat(p.price).toFixed(2)}
                              </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                              <input 
+                                type="checkbox"
+                                checked={!!p.featured}
+                                onChange={() => handleToggleFeatured(p.id, p.featured, p.name)}
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  cursor: 'pointer',
+                                  accentColor: 'var(--accent)'
+                                }}
+                              />
+                            </label>
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <div className="table-actions" style={{ justifyContent: 'center' }}>
@@ -538,9 +666,23 @@ export default function AdminDashboard({ addToast }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '30px', alignItems: 'start' }}>
           {/* Form to add a slide */}
           <div className="dashboard-card">
-            <h3>Add Carousel Slide</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0 }}>{editSlideId ? 'Edit Carousel Slide' : 'Add Carousel Slide'}</h3>
+              {editSlideId && (
+                <button 
+                  onClick={() => {
+                    setEditSlideId(null);
+                    setNewSlide({ tag: '', title: '', desc: '', offer: '', img: '' });
+                  }}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', fontSize: '12px', minWidth: 'auto' }}
+                >
+                  Cancel Edit
+                </button>
+              )}
+            </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px' }}>
-              Create an auto-advancing slide with customized text overlay promos.
+              {editSlideId ? 'Update the details for this slide.' : 'Create an auto-advancing slide with customized text overlay promos.'}
             </p>
 
             <form onSubmit={handleAddSlide} className="add-product-form">
@@ -621,7 +763,7 @@ export default function AdminDashboard({ addToast }) {
               </div>
 
               <button type="submit" className="btn-accent" style={{ marginTop: '10px' }} id="add-slide-submit">
-                Add Slide
+                {editSlideId ? 'Update Slide' : 'Add Slide'}
               </button>
             </form>
           </div>
@@ -659,15 +801,24 @@ export default function AdminDashboard({ addToast }) {
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 'auto' }}>{slide.offer || 'No Promo Banner'}</span>
                   </div>
 
-                  <button
-                    onClick={() => handleDeleteSlide(index)}
-                    className="icon-action-btn delete-btn"
-                    style={{ position: 'absolute', top: '16px', right: '16px' }}
-                    title="Delete Slide"
-                    id={`delete-slide-${index}`}
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div style={{ position: 'absolute', top: '16px', right: '16px', display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => handleEditSlide(slide)}
+                      className="icon-action-btn"
+                      style={{ color: 'var(--text-primary)' }}
+                      title="Edit Slide"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSlide(slide.id)}
+                      className="icon-action-btn delete-btn"
+                      title="Delete Slide"
+                      id={`delete-slide-${index}`}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -994,10 +1145,11 @@ export default function AdminDashboard({ addToast }) {
       {/* TAB 4: GENERAL CONFIGURATIONS */}
       {activeTab === 'settings' && (
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <form onSubmit={handleSaveSettings} className="add-product-form" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', alignItems: 'start' }}>
+          <form onSubmit={handleSaveSettings} className="add-product-form">
             
-            <div className="dashboard-card">
-              <h3>General Store Config</h3>
+            <div style={{ columns: '2 450px', gap: '24px' }}>
+              <div className="dashboard-card" style={{ breakInside: 'avoid', marginBottom: '24px' }}>
+                <h3>General Store Config</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px' }}>
                 Control utility configurations that appear dynamically on storefront banners and calculations.
               </p>
@@ -1029,7 +1181,7 @@ export default function AdminDashboard({ addToast }) {
 
             {user?.role === 'admin' && (
               <>
-            <div className="dashboard-card">
+            <div className="dashboard-card" style={{ breakInside: 'avoid', marginBottom: '24px' }}>
                   <h3 style={{ marginBottom: '20px' }}>
                     Global Theme Colors
                   </h3>
@@ -1095,12 +1247,93 @@ export default function AdminDashboard({ addToast }) {
                         />
                       </div>
                   </div>
+
+                  <hr style={{ borderTop: '1px solid var(--border-luxe)', borderBottom: 'none', margin: '20px 0' }} />
+
+                  <h3 style={{ marginBottom: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>Menu Navigation Colors</h3>
+
+                  <div className="form-row">
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-menu-bg">Menu Background</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          type="text" 
+                          id="config-menu-bg" 
+                          className="form-input" 
+                          value={menuBgColor} 
+                          onChange={(e) => setMenuBgColor(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-menu-text">Menu Text Color</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          type="color" 
+                          id="config-menu-text" 
+                          value={menuTextColor} 
+                          onChange={(e) => setMenuTextColor(e.target.value)}
+                          style={{ width: '40px', height: '40px', padding: '0', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                        />
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          value={menuTextColor} 
+                          onChange={(e) => setMenuTextColor(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
             </div>
 
-            <div className="dashboard-card">
+            <div className="dashboard-card" style={{ breakInside: 'avoid', marginBottom: '24px' }}>
                   <h3 style={{ marginBottom: '20px' }}>
-                    Brand Typography
+                    Brand Identity & Typography
                   </h3>
+                  
+                  <div className="form-group" style={{ margin: 0, marginBottom: '16px' }}>
+                    <label className="form-label">Brand Logo (Overrides Text Name)</label>
+                    <ImageUpload 
+                      onUploadSuccess={(url) => setBrandLogoUrl(url)}
+                      label={brandLogoUrl ? "Replace Logo" : "Upload Logo"}
+                    />
+                    {brandLogoUrl && (
+                      <div style={{ marginTop: '12px' }}>
+                        <img src={brandLogoUrl} alt="Brand Logo preview" style={{ width: brandLogoWidth, height: brandLogoHeight, borderRadius: '4px', background: 'rgba(0,0,0,0.2)', padding: '10px', objectFit: 'contain' }} />
+                        <button type="button" onClick={() => setBrandLogoUrl('')} style={{ display: 'block', marginTop: '8px', color: '#ff4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}>Remove Logo</button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group" style={{ margin: 0, marginBottom: '16px' }}>
+                      <label className="form-label" htmlFor="config-brand-logo-width">Logo Width (e.g. 120px, auto)</label>
+                      <input 
+                        type="text" 
+                        id="config-brand-logo-width" 
+                        className="form-input" 
+                        placeholder="e.g. 120px" 
+                        value={brandLogoWidth} 
+                        onChange={(e) => setBrandLogoWidth(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0, marginBottom: '16px' }}>
+                      <label className="form-label" htmlFor="config-brand-logo-height">Logo Height (e.g. 40px, auto)</label>
+                      <input 
+                        type="text" 
+                        id="config-brand-logo-height" 
+                        className="form-input" 
+                        placeholder="e.g. 40px" 
+                        value={brandLogoHeight} 
+                        onChange={(e) => setBrandLogoHeight(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <hr style={{ borderTop: '1px solid var(--border-luxe)', borderBottom: 'none', margin: '20px 0' }} />
                   
                   <div className="form-row">
                     <div className="form-group" style={{ margin: 0 }}>
@@ -1151,7 +1384,7 @@ export default function AdminDashboard({ addToast }) {
                   </div>
             </div>
 
-            <div className="dashboard-card">
+            <div className="dashboard-card" style={{ breakInside: 'avoid', marginBottom: '24px' }}>
                   <h3 style={{ marginBottom: '20px' }}>
                     Content & Messaging
                   </h3>
@@ -1186,7 +1419,77 @@ export default function AdminDashboard({ addToast }) {
                   </div>
             </div>
 
-            <div className="dashboard-card">
+            <div className="dashboard-card" style={{ breakInside: 'avoid', marginBottom: '24px' }}>
+                  <h3 style={{ marginBottom: '20px' }}>
+                    Footer Configurations
+                  </h3>
+
+                  <div className="form-row">
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-footer-bg">Footer Background</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          type="color" 
+                          id="config-footer-bg" 
+                          value={footerBgColor} 
+                          onChange={(e) => setFooterBgColor(e.target.value)}
+                          style={{ width: '40px', height: '40px', padding: '0', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                        />
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          value={footerBgColor} 
+                          onChange={(e) => setFooterBgColor(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="config-footer-text">Footer Text</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          type="color" 
+                          id="config-footer-text" 
+                          value={footerTextColor} 
+                          onChange={(e) => setFooterTextColor(e.target.value)}
+                          style={{ width: '40px', height: '40px', padding: '0', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                        />
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          value={footerTextColor} 
+                          onChange={(e) => setFooterTextColor(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0, marginTop: '16px' }}>
+                    <label className="form-label" htmlFor="config-footer-bio">Footer Bio / Description</label>
+                    <textarea 
+                      id="config-footer-bio" 
+                      className="form-input" 
+                      style={{ resize: 'vertical', minHeight: '80px' }}
+                      value={footerBio} 
+                      onChange={(e) => setFooterBio(e.target.value)}
+                    ></textarea>
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0, marginTop: '16px' }}>
+                    <label className="form-label" htmlFor="config-footer-copyright">Footer Copyright & Credits</label>
+                    <input 
+                      type="text" 
+                      id="config-footer-copyright" 
+                      className="form-input" 
+                      value={footerCopyrightText} 
+                      onChange={(e) => setFooterCopyrightText(e.target.value)}
+                    />
+                  </div>
+            </div>
+
+            <div className="dashboard-card" style={{ breakInside: 'avoid', marginBottom: '24px' }}>
                   <h3 style={{ marginBottom: '20px' }}>
                     About Page Philosophy
                   </h3>
@@ -1224,21 +1527,24 @@ export default function AdminDashboard({ addToast }) {
                   </div>
             </div>
 
-            <div className="dashboard-card">
+            <div className="dashboard-card" style={{ breakInside: 'avoid', marginBottom: '24px' }}>
                   <h3 style={{ marginBottom: '20px' }}>
                     Social Handles & Coordinates
                   </h3>
 
                   <div className="form-row">
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" htmlFor="config-whatsapp">WhatsApp Handle</label>
+                      <label className="form-label" htmlFor="config-whatsapp">WhatsApp Number (10 Digits)</label>
                       <input 
-                        type="text" 
+                        type="tel" 
                         id="config-whatsapp" 
                         className="form-input" 
-                        placeholder="e.g. +1 (555) 019-2831" 
+                        placeholder="e.g. 9876543210" 
                         value={whatsapp} 
                         onChange={(e) => setWhatsapp(e.target.value)}
+                        pattern="\d{10}"
+                        maxLength="10"
+                        title="Please enter exactly 10 digits without +91 or spaces"
                       />
                     </div>
 
@@ -1288,10 +1594,13 @@ export default function AdminDashboard({ addToast }) {
                     </select>
                   </div>
             </div>
+            
+            
                 </>
               )}
+            </div>
 
-              <button type="submit" className="btn-accent" style={{ marginTop: '10px', gridColumn: '1 / -1' }} id="save-settings-submit">
+              <button type="submit" className="btn-accent" style={{ marginTop: '24px', gridColumn: '1 / -1', width: '100%', maxWidth: '300px' }} id="save-settings-submit">
                 Save General Settings
               </button>
             </form>
@@ -1397,7 +1706,7 @@ export default function AdminDashboard({ addToast }) {
       {/* ADD SINGLE DIALOG MANUAL MODAL */}
       {showAddModal && (
         <div className="modal-backdrop">
-          <div className="modal-content">
+          <div className="modal-content modal-content-wide">
             <div className="modal-header">
               <h3 className="modal-title">Manual Garment Entry</h3>
               <button className="modal-close-btn" onClick={() => setShowAddModal(false)}>
@@ -1406,111 +1715,123 @@ export default function AdminDashboard({ addToast }) {
             </div>
 
             <form onSubmit={handleManualAdd}>
-              <div className="modal-body">
-                <div className="add-product-form">
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" htmlFor="manual-name">Product Name *</label>
-                    <input 
-                      type="text" 
-                      id="manual-name"
-                      className="form-input" 
-                      placeholder="e.g. CORE OVERSIZED TEE"
-                      value={newProduct.name}
-                      onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-row">
+              <div className="modal-body" style={{ padding: '16px 24px', overflowY: 'auto', maxHeight: 'calc(100vh - 120px)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
+                  {/* Left Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" htmlFor="manual-price">Price (INR) *</label>
+                      <label className="form-label" htmlFor="manual-name">Product Name *</label>
                       <input 
-                        type="number" 
-                        id="manual-price"
-                        step="0.01"
+                        type="text" 
+                        id="manual-name"
                         className="form-input" 
-                        placeholder="e.g. 2499.00"
-                        value={newProduct.price}
-                        onChange={(e) => setNewProduct(prev => ({ ...prev, price: e.target.value }))}
+                        placeholder="e.g. CORE OVERSIZED TEE"
+                        value={newProduct.name}
+                        onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
                         required
+                        style={{ padding: '6px 12px', height: '32px' }}
                       />
                     </div>
 
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" htmlFor="manual-category">Category *</label>
-                      <select 
-                        id="manual-category"
-                        className="form-input" 
-                        value={newProduct.category || shopCategories[0] || ''}
-                        onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {shopCategories.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" htmlFor="manual-desc">Description</label>
-                    <RichTextEditor 
-                      value={newProduct.description}
-                      onChange={(val) => setNewProduct(prev => ({ ...prev, description: val }))}
-                      placeholder="Enter detailed description of garment fabric, weight, drape..."
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" htmlFor="manual-img">Product Image</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <input 
-                        type="url" 
-                        id="manual-img"
-                        className="form-input" 
-                        placeholder="Paste image URL here..."
-                        value={newProduct.img}
-                        onChange={(e) => setNewProduct(prev => ({ ...prev, img: e.target.value }))}
-                      />
-                      <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '700' }}>OR</span>
-                      <ImageUpload 
-                        onUploadSuccess={(url) => setNewProduct(prev => ({ ...prev, img: url }))}
-                      />
-                    </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Image size={10} />
-                      Recommended: <strong>800 × 1000 px</strong> (portrait) · JPG/PNG/WebP · Max 2 MB
-                    </div>
-                    {newProduct.img && (
-                      <div style={{ marginTop: '10px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-luxe)', maxWidth: '120px' }}>
-                        <img src={newProduct.img} alt="Preview" style={{ width: '100%', height: '140px', objectFit: 'cover', display: 'block' }} />
+                    <div className="form-row" style={{ gap: '12px' }}>
+                      <div className="form-group" style={{ margin: 0, flex: 1 }}>
+                        <label className="form-label" htmlFor="manual-price">Price (INR) *</label>
+                        <input 
+                          type="number" 
+                          id="manual-price"
+                          step="0.01"
+                          className="form-input" 
+                          placeholder="e.g. 2499"
+                          value={newProduct.price}
+                          onChange={(e) => setNewProduct(prev => ({ ...prev, price: e.target.value }))}
+                          required
+                          style={{ padding: '6px 12px', height: '32px' }}
+                        />
                       </div>
-                    )}
-                  </div>
 
-                  <div className="form-row">
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" htmlFor="manual-sizes">Sizes (Comma separated)</label>
-                      <input 
-                        type="text" 
-                        id="manual-sizes"
-                        className="form-input" 
-                        placeholder="e.g. S, M, L, XL"
-                        value={newProduct.sizes}
-                        onChange={(e) => setNewProduct(prev => ({ ...prev, sizes: e.target.value }))}
-                      />
+                      <div className="form-group" style={{ margin: 0, flex: 1 }}>
+                        <label className="form-label" htmlFor="manual-category">Category *</label>
+                        <select 
+                          id="manual-category"
+                          className="form-input" 
+                          value={newProduct.category || shopCategories[0] || ''}
+                          onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
+                          style={{ cursor: 'pointer', padding: '6px 12px', height: '32px' }}
+                        >
+                          {shopCategories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" htmlFor="manual-colors">Colors (Comma separated)</label>
-                      <input 
-                        type="text" 
-                        id="manual-colors"
-                        className="form-input" 
-                        placeholder="e.g. Matte Black, Off-White"
-                        value={newProduct.colors}
-                        onChange={(e) => setNewProduct(prev => ({ ...prev, colors: e.target.value }))}
+                      <label className="form-label" htmlFor="manual-desc">Description</label>
+                      <RichTextEditor 
+                        value={newProduct.description}
+                        onChange={(val) => setNewProduct(prev => ({ ...prev, description: val }))}
+                        placeholder="Enter detailed description..."
+                        style={{ minHeight: '100px' }}
                       />
+                    </div>
+
+                    <div className="form-row" style={{ gap: '12px' }}>
+                      <div className="form-group" style={{ margin: 0, flex: 1 }}>
+                        <label className="form-label" htmlFor="manual-sizes">Sizes (Comma separated)</label>
+                        <input 
+                          type="text" 
+                          id="manual-sizes"
+                          className="form-input" 
+                          placeholder="e.g. S, M, L, XL"
+                          value={newProduct.sizes}
+                          onChange={(e) => setNewProduct(prev => ({ ...prev, sizes: e.target.value }))}
+                          style={{ padding: '6px 12px', height: '32px' }}
+                        />
+                      </div>
+
+                      <div className="form-group" style={{ margin: 0, flex: 1 }}>
+                        <label className="form-label" htmlFor="manual-colors">Colors (Comma separated)</label>
+                        <input 
+                          type="text" 
+                          id="manual-colors"
+                          className="form-input" 
+                          placeholder="e.g. Matte Black"
+                          value={newProduct.colors}
+                          onChange={(e) => setNewProduct(prev => ({ ...prev, colors: e.target.value }))}
+                          style={{ padding: '6px 12px', height: '32px' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column (Image) */}
+                  <div style={{ borderLeft: '1px solid var(--border-luxe)', paddingLeft: '20px' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="manual-img">Product Image</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <input 
+                          type="url" 
+                          id="manual-img"
+                          className="form-input" 
+                          placeholder="Paste image URL here..."
+                          value={newProduct.img}
+                          onChange={(e) => setNewProduct(prev => ({ ...prev, img: e.target.value }))}
+                          style={{ padding: '6px 12px', height: '32px' }}
+                        />
+                        <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '700' }}>OR</span>
+                        <ImageUpload 
+                          onUploadSuccess={(url) => setNewProduct(prev => ({ ...prev, img: url }))}
+                        />
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Image size={10} />
+                        Recommended: <strong>800 × 1000 px</strong> (portrait)
+                      </div>
+                      {newProduct.img && (
+                        <div style={{ marginTop: '10px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-luxe)', maxWidth: '160px', margin: '10px auto' }}>
+                          <img src={newProduct.img} alt="Preview" style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

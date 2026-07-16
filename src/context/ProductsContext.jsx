@@ -21,7 +21,14 @@ export const ProductsProvider = ({ children }) => {
         if (error) {
             setError(error.message);
         } else {
-            setProducts(data || []);
+            const parsedData = (data || []).map(p => ({
+                ...p,
+                colors: typeof p.colors === 'string' ? p.colors.replace(/^\{|\}$/g, '').replace(/^\[|\]$/g, '').replace(/"/g, '').split(',').map(s=>s.trim()).filter(Boolean) : (p.colors || []),
+                sizes: typeof p.sizes === 'string' ? p.sizes.replace(/^\{|\}$/g, '').replace(/^\[|\]$/g, '').replace(/"/g, '').split(',').map(s=>s.trim()).filter(Boolean) : (p.sizes || []),
+                tags: typeof p.tags === 'string' ? p.tags.replace(/^\{|\}$/g, '').replace(/^\[|\]$/g, '').replace(/"/g, '').split(',').map(s=>s.trim()).filter(Boolean) : (p.tags || []),
+                images: typeof p.images === 'string' ? p.images.replace(/^\{|\}$/g, '').replace(/^\[|\]$/g, '').replace(/"/g, '').split(',').map(s=>s.trim()).filter(Boolean) : (p.images || [])
+            }));
+            setProducts(parsedData);
         }
         setLoading(false);
     };
@@ -46,6 +53,8 @@ export const ProductsProvider = ({ children }) => {
                 ? prod.tags
                 : (prod.tags || '').split(',').map(t => t.trim()).filter(Boolean),
             img_url: prod.img || prod.img_url || '',
+            images: Array.isArray(prod.images) ? prod.images : (prod.img_url ? [prod.img_url] : []),
+            sku: prod.sku || `MANUAL-${Date.now()}`,
             featured: !!prod.featured,
         };
 
@@ -74,17 +83,31 @@ export const ProductsProvider = ({ children }) => {
         }
     };
 
+    const bulkDeleteProducts = async (ids) => {
+        const { error } = await supabase
+            .from('products')
+            .delete()
+            .in('id', ids);
+
+        if (!error) {
+            setProducts(prev => prev.filter(p => !ids.includes(p.id)));
+        }
+        return { error };
+    };
+
     const updateProduct = async (id, updatedFields) => {
-        const patch = {
-            ...updatedFields,
-            price: parseFloat(updatedFields.price) || 0,
-            sizes: Array.isArray(updatedFields.sizes)
+        const patch = { ...updatedFields };
+        if ('price' in updatedFields) patch.price = parseFloat(updatedFields.price) || 0;
+        if ('sizes' in updatedFields) {
+            patch.sizes = Array.isArray(updatedFields.sizes)
                 ? updatedFields.sizes
-                : (updatedFields.sizes || '').split(',').map(s => s.trim()).filter(Boolean),
-            colors: Array.isArray(updatedFields.colors)
+                : (updatedFields.sizes || '').split(',').map(s => s.trim()).filter(Boolean);
+        }
+        if ('colors' in updatedFields) {
+            patch.colors = Array.isArray(updatedFields.colors)
                 ? updatedFields.colors
-                : (updatedFields.colors || '').split(',').map(c => c.trim()).filter(Boolean),
-        };
+                : (updatedFields.colors || '').split(',').map(c => c.trim()).filter(Boolean);
+        }
 
         const { data, error } = await supabase
             .from('products')
@@ -114,6 +137,8 @@ export const ProductsProvider = ({ children }) => {
                 ? prod.tags
                 : (prod.tags || '').split(',').map(t => t.trim()).filter(Boolean),
             img_url: prod.img || prod.img_url || '',
+            images: Array.isArray(prod.images) ? prod.images : (prod.img_url ? [prod.img_url] : []),
+            sku: prod.sku || `BULK-${Date.now()}-${Math.random().toString(36).substring(7)}`,
             featured: !!prod.featured,
         }));
 
@@ -135,6 +160,7 @@ export const ProductsProvider = ({ children }) => {
             error,
             addNewProduct,
             deleteProduct,
+            bulkDeleteProducts,
             updateProduct,
             bulkUploadProducts,
             refetchProducts: fetchProducts,

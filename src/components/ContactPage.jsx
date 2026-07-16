@@ -42,7 +42,7 @@ export default function ContactPage({ addToast }) {
     {
       name: 'WhatsApp Concierge',
       value: shopSettings.whatsapp,
-      link: `https://wa.me/${shopSettings.whatsapp?.replace(/[^0-9]/g, '')}`,
+      link: `https://wa.me/${(shopSettings.whatsapp?.replace(/[^0-9]/g, '')?.length === 10 ? '91' : '') + (shopSettings.whatsapp?.replace(/[^0-9]/g, '') || '')}`,
       icon: <MessageSquare size={20} />,
       desc: 'Instant styling guidelines and sizing support.'
     },

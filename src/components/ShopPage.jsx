@@ -12,6 +12,8 @@ export default function ShopPage({ addToast }) {
     const [activeCategory, setActiveCategory] = useState('All');
     const [activeSize, setActiveSize] = useState('All');
     const [activeColor, setActiveColor] = useState('All');
+    const [colorSearchQuery, setColorSearchQuery] = useState('');
+    const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false);
     const [minPrice, setMinPrice] = useState('');
     const [maxPrice, setMaxPrice] = useState('');
     const [sortBy, setSortBy] = useState('default'); // default, price-asc, price-desc
@@ -104,7 +106,7 @@ export default function ShopPage({ addToast }) {
         }
 
         return result;
-    }, [products, search, activeCategory, activeSize, minPrice, maxPrice, sortBy]);
+    }, [products, search, activeCategory, activeSize, activeColor, minPrice, maxPrice, sortBy]);
 
     const itemsPerPage = 12;
     const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -207,26 +209,95 @@ export default function ShopPage({ addToast }) {
 
                     {/* COLOURS */}
                     <div className="filter-section">
-                        <h4 className="filter-title">Colour</h4>
-                        <div className="filter-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {colors.map(c => {
-                                const count = c === 'All'
-                                    ? products.length
-                                    : products.filter(p => Array.isArray(p.colors) && p.colors.some(pc => typeof pc === 'string' && pc.trim().toLowerCase() === c.toLowerCase())).length;
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <h4 className="filter-title" style={{ margin: 0 }}>Colour</h4>
+                            {activeColor !== 'All' && (
+                                <button 
+                                    onClick={() => setActiveColor('All')}
+                                    style={{ fontSize: '11px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
 
-                                return (
-                                    <button
-                                        key={c}
-                                        className={`filter-pill ${activeColor === c ? 'active' : ''}`}
-                                        onClick={() => setActiveColor(c)}
-                                        id={`color-filter-${c.toLowerCase().replace(/\s+/g, '-')}`}
-                                        style={{ fontSize: '11px', textTransform: 'uppercase' }}
-                                    >
-                                        <span>{c}</span>
-                                        <span className="pill-count">{count}</span>
-                                    </button>
-                                );
-                            })}
+                        <div style={{ position: 'relative' }}>
+                            <button 
+                                onClick={() => setIsColorDropdownOpen(!isColorDropdownOpen)}
+                                style={{ 
+                                    width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                                    borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '13px'
+                                }}
+                            >
+                                <span>{activeColor === 'All' ? 'Select Colour' : activeColor}</span>
+                                <span style={{ transform: isColorDropdownOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</span>
+                            </button>
+
+                            {isColorDropdownOpen && (
+                                <div style={{ 
+                                    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px',
+                                    background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px',
+                                    padding: '8px', zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                }}>
+                                    <div className="search-box" style={{ marginBottom: '8px' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Search colours..."
+                                            className="search-input"
+                                            value={colorSearchQuery}
+                                            onChange={(e) => setColorSearchQuery(e.target.value)}
+                                            style={{ padding: '6px 12px 6px 32px', fontSize: '12px', height: '32px' }}
+                                        />
+                                        <Search className="search-icon-inside" size={14} style={{ left: '10px' }} />
+                                    </div>
+
+                                    <div className="color-dropdown-list" style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', paddingRight: '4px' }}>
+                                        {colors.filter(c => c.toLowerCase().includes(colorSearchQuery.toLowerCase())).map(c => {
+                                            const count = c === 'All'
+                                                ? products.length
+                                                : products.filter(p => Array.isArray(p.colors) && p.colors.some(pc => typeof pc === 'string' && pc.trim().toLowerCase() === c.toLowerCase())).length;
+
+                                            return (
+                                                <label
+                                                    key={c}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        padding: '6px 8px',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        background: activeColor === c ? 'var(--bg-darker)' : 'transparent',
+                                                        transition: 'all 0.2s ease',
+                                                    }}
+                                                    className="color-list-item"
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <input 
+                                                            type="radio" 
+                                                            name="color-filter"
+                                                            checked={activeColor === c}
+                                                            onChange={() => {
+                                                                setActiveColor(c);
+                                                                setIsColorDropdownOpen(false);
+                                                            }}
+                                                            style={{ accentColor: 'var(--accent)', margin: 0 }}
+                                                        />
+                                                        <span style={{ fontSize: '13px', color: activeColor === c ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{c}</span>
+                                                    </div>
+                                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{count}</span>
+                                                </label>
+                                            );
+                                        })}
+                                        {colors.filter(c => c.toLowerCase().includes(colorSearchQuery.toLowerCase())).length === 0 && (
+                                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '10px 0' }}>
+                                                No colours found
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

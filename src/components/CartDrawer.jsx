@@ -40,7 +40,9 @@ export default function CartDrawer({ addToast }) {
 
         const msgText = `Hello ${shopSettings?.brand_name || 'SNEEK'},\n\nI would like to enquire about these products.\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\n\nProducts:\n\n${productTextList}\n\nPlease contact me regarding availability.\n\nThank you.`;
 
-        const cleanNum = (shopSettings.whatsapp || '+91 9876543210').replace(/[^0-9]/g, '');
+        let rawNum = shopSettings.whatsapp?.replace(/[^0-9]/g, '') || '9876543210';
+        if (rawNum.length === 10) rawNum = '91' + rawNum; // Auto-prepend Indian country code
+        const cleanNum = '+' + rawNum;
         const waUrl = `https://wa.me/${cleanNum}?text=${encodeURIComponent(msgText)}`;
         
         window.open(waUrl, '_blank');
@@ -106,7 +108,7 @@ export default function CartDrawer({ addToast }) {
                         ) : (
                             cart.map((item, idx) => (
                                 <div className="cart-item" key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}-${idx}`}>
-                                    <img src={item.product.img} alt={item.product.name} className="cart-item-img" />
+                                    <img src={(item.product.images && item.product.images[0]) || item.product.img_url || item.product.img} alt={item.product.name} className="cart-item-img" />
                                     <div className="cart-item-details">
                                         <h4 className="cart-item-name">{item.product.name}</h4>
                                         <span className="cart-item-meta">

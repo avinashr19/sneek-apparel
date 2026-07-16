@@ -28,7 +28,11 @@ export default function Navbar({ currentView, setCurrentView }) {
                         fontWeight: 'var(--brand-font-weight)',
                         fontFamily: 'var(--brand-font-family)'
                     }}>
-                        {shopSettings?.brand_name?.toUpperCase() || 'SNEEK'}
+                        {shopSettings?.brand_logo_url ? (
+                            <img src={shopSettings.brand_logo_url} alt={shopSettings?.brand_name || 'Brand Logo'} style={{ width: 'var(--brand-logo-width)', height: 'var(--brand-logo-height)', objectFit: 'contain', display: 'block' }} />
+                        ) : (
+                            shopSettings?.brand_name?.toUpperCase() || 'SNEEK'
+                        )}
                     </a>
                 </div>
 
@@ -101,7 +105,11 @@ export default function Navbar({ currentView, setCurrentView }) {
                     {/* MOBILE LOGO AREA */}
                     <div className="nav-logo" style={{ margin: '0 auto', transform: 'translateX(-20px)' }}>
                         <a href="#" onClick={(e) => handleNavClick('home', e)} style={{ color: 'inherit', textDecoration: 'none' }}>
-                            {shopSettings?.brand_name || 'SNEEK'}<span>.</span>
+                            {shopSettings?.brand_logo_url ? (
+                                <img src={shopSettings.brand_logo_url} alt={shopSettings?.brand_name || 'Brand Logo'} style={{ width: 'var(--brand-logo-width)', height: 'var(--brand-logo-height)', objectFit: 'contain', display: 'inline-block', verticalAlign: 'middle' }} />
+                            ) : (
+                                <>{shopSettings?.brand_name || 'SNEEK'}<span>.</span></>
+                            )}
                         </a>
                     </div>
                     <nav>

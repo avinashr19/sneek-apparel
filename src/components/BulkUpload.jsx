@@ -1,40 +1,26 @@
-import React, { useState, useRef } from 'react';
-import { Upload, FileText, CheckCircle, AlertTriangle, Play, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, X, Loader2, Play, Image as ImageIcon, Trash2, Download } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
+import { useSettings } from '../context/SettingsContext';
+import { supabase } from '../lib/supabase';
+import JSZip from 'jszip';
 
 export default function BulkUpload({ addToast, onUploadComplete }) {
     const { bulkUploadProducts } = useProducts();
+    const { shopCategories } = useSettings();
     const [dragActive, setDragActive] = useState(false);
-    const [file, setFile] = useState(null);
-    const [parsedData, setParsedData] = useState([]); // Raw rows from file
-    const [headers, setHeaders] = useState([]); // CSV headers
-    const [mappings, setMappings] = useState({
-        name: '',
-        price: '',
-        category: '',
-        description: '',
-        sizes: '',
-        colors: '',
-        tags: '',
-        img: ''
-    });
-    const [expressMode, setExpressMode] = useState(true); // Auto-detect and skip mapping
-    const [step, setStep] = useState('select'); // select, map, preview
-    const [processedRows, setProcessedRows] = useState([]); // Ready for import
-    const [selectedRows, setSelectedRows] = useState({}); // Checked row index map
+    const [pendingProducts, setPendingProducts] = useState([]);
+    const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef(null);
 
-    // Field definitions for mapping
-    const targetFields = [
-        { key: 'name', label: 'Product Name (Required)' },
-        { key: 'price', label: 'Price (Numeric, Required)' },
-        { key: 'category', label: 'Category' },
-        { key: 'description', label: 'Description' },
-        { key: 'img', label: 'Image URL' },
-        { key: 'sizes', label: 'Sizes (Comma separated)' },
-        { key: 'colors', label: 'Colors (Comma separated)' },
-        { key: 'tags', label: 'Tags (Comma separated)' }
-    ];
+    // Cleanup object URLs to avoid memory leaks
+    useEffect(() => {
+        return () => {
+            pendingProducts.forEach(p => {
+                if (p.previewUrls) p.previewUrls.forEach(url => URL.revokeObjectURL(url));
+            });
+        };
+    }, []);
 
     const handleDrag = (e) => {
         e.preventDefault();
@@ -50,280 +36,243 @@ export default function BulkUpload({ addToast, onUploadComplete }) {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            processFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            processFiles(e.dataTransfer.files);
         }
     };
 
     const handleFileChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            processFile(e.target.files[0]);
+        if (e.target.files && e.target.files.length > 0) {
+            processFiles(e.target.files);
         }
     };
 
-    const processFile = (selectedFile) => {
-        const ext = selectedFile.name.split('.').pop().toLowerCase();
-        if (ext !== 'csv' && ext !== 'json') {
-            addToast('Invalid file format. Please upload a .csv or .json file.', 'error');
+    const processFiles = (fileList) => {
+        const files = Array.from(fileList);
+        const imgFiles = files.filter(f => f.type.startsWith('image/'));
+        
+        if (imgFiles.length === 0) {
+            addToast('No images found. Please upload image files.', 'error');
             return;
         }
 
-        setFile(selectedFile);
-        const reader = new FileReader();
+        const groups = {};
 
-        reader.onload = (e) => {
-            const text = e.target.result;
-            if (ext === 'json') {
-                parseJson(text);
-            } else {
-                parseCsv(text);
-            }
-        };
-
-        reader.readAsText(selectedFile);
-    };
-
-    const parseJson = (text) => {
-        try {
-            const data = JSON.parse(text);
-            const rows = Array.isArray(data) ? data : [data];
-            if (rows.length === 0) {
-                addToast('JSON file is empty.', 'error');
-                return;
-            }
-
-            const allKeys = Object.keys(rows[0] || {});
-            processParsedData(rows, allKeys);
-        } catch (err) {
-            addToast('Could not parse JSON. Ensure JSON format is correct.', 'error');
-        }
-    };
-
-    const parseCsv = (text) => {
-        const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-        if (lines.length === 0) {
-            addToast('CSV file is empty.', 'error');
-            return;
-        }
-
-        const parseCsvLine = (line) => {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    result.push(current.trim().replace(/^"|"$/g, ''));
-                    current = '';
-                } else {
-                    current += char;
+        imgFiles.forEach(file => {
+            const path = file.webkitRelativePath;
+            let sku = '';
+            let categoryFromPath = null;
+            if (path) {
+                const parts = path.split('/');
+                if (parts.length > 1) {
+                    sku = parts[parts.length - 2];
+                }
+                if (parts.length > 2) {
+                    categoryFromPath = parts[parts.length - 3];
                 }
             }
-            result.push(current.trim().replace(/^"|"$/g, ''));
-            return result;
-        };
-
-        const headerRow = parseCsvLine(lines[0]);
-        const records = [];
-
-        for (let i = 1; i < lines.length; i++) {
-            const fields = parseCsvLine(lines[i]);
-            const record = {};
-            headerRow.forEach((h, index) => {
-                record[h] = fields[index] || '';
-            });
-            records.push(record);
-        }
-
-        processParsedData(records, headerRow);
-    };
-
-    const getAutoMappings = (fileHeaders) => {
-        const autoMappings = {
-            name: '',
-            price: '',
-            category: '',
-            description: '',
-            sizes: '',
-            colors: '',
-            tags: '',
-            img: ''
-        };
-
-        const findMatch = (key, synonyms) => {
-            const lowerSynonyms = synonyms.map(s => s.toLowerCase());
-            const headerMatch = fileHeaders.find(h => {
-                const lowerH = h.toLowerCase();
-                return lowerH === key || lowerSynonyms.includes(lowerH);
-            });
-            return headerMatch || '';
-        };
-
-        autoMappings.name = findMatch('name', ['title', 'productname', 'item', 'product']);
-        autoMappings.price = findMatch('price', ['cost', 'rate', 'retail', 'value', 'priceinr', 'rupees', 'priceusd']);
-        autoMappings.category = findMatch('category', ['type', 'collection', 'dept', 'department']);
-        autoMappings.description = findMatch('description', ['desc', 'details', 'about', 'summary']);
-        autoMappings.sizes = findMatch('sizes', ['size', 'sizelist', 'availablesizes']);
-        autoMappings.colors = findMatch('colors', ['color', 'colors', 'colour', 'colours', 'colorlist']);
-        autoMappings.tags = findMatch('tags', ['tag', 'labels', 'status']);
-        autoMappings.img = findMatch('img', ['image', 'images', 'photourl', 'pic', 'url']);
-
-        return autoMappings;
-    };
-
-    const processParsedData = (records, fileHeaders) => {
-        setHeaders(fileHeaders);
-        setParsedData(records);
-        
-        const autoMap = getAutoMappings(fileHeaders);
-        setMappings(autoMap);
-
-        if (expressMode) {
-            validateWithMappings(records, autoMap);
-        } else {
-            setStep('map');
-        }
-    };
-
-    const handleMappingChange = (fieldKey, value) => {
-        setMappings(prev => ({ ...prev, [fieldKey]: value }));
-    };
-
-    const validateWithMappings = (records, activeMappings) => {
-        const rows = records.map((rawRow, idx) => {
-            const nameVal = rawRow[activeMappings.name] ? String(rawRow[activeMappings.name]).trim() : '';
-            const priceRaw = rawRow[activeMappings.price] ? String(rawRow[activeMappings.price]).trim() : '';
-            // Strip rupee symbols or spaces for parsing
-            const priceVal = parseFloat(priceRaw.replace(/[^0-9.]/g, ''));
-
-            const errors = [];
-            if (!nameVal) {
-                errors.push('Product name is required.');
-            }
-            if (isNaN(priceVal)) {
-                errors.push('Price must be a valid number.');
+            if (!sku) {
+                sku = file.name.split('.')[0].toUpperCase();
             }
 
-            const mappedProduct = {
-                name: nameVal,
-                price: isNaN(priceVal) ? 0 : priceVal,
-                category: rawRow[activeMappings.category] ? String(rawRow[activeMappings.category]).trim() : 'Uncategorized',
-                description: rawRow[activeMappings.description] ? String(rawRow[activeMappings.description]).trim() : '',
-                img: rawRow[activeMappings.img] ? String(rawRow[activeMappings.img]).trim() : '',
-                sizes: rawRow[activeMappings.sizes] ? String(rawRow[activeMappings.sizes]).trim() : 'S, M, L, XL',
-                colors: rawRow[activeMappings.colors] ? String(rawRow[activeMappings.colors]).trim() : 'Matte Black',
-                tags: rawRow[activeMappings.tags] ? String(rawRow[activeMappings.tags]).trim() : ''
-            };
+            if (!groups[sku]) {
+                groups[sku] = {
+                    files: [],
+                    previewUrls: [],
+                    categoryFromPath
+                };
+            }
+            groups[sku].files.push(file);
+            groups[sku].previewUrls.push(URL.createObjectURL(file));
+        });
+
+        const newProducts = Object.entries(groups).map(([sku, data]) => {
+            const nameSpace = sku.replace(/[-_]/g, ' ');
+            const nameLower = nameSpace.toLowerCase();
+            
+            // Try to auto-detect category from folder name first, then file name
+            let detectedCategory = 'Uncategorized';
+            if (data.categoryFromPath && shopCategories && shopCategories.length > 0) {
+                const match = shopCategories.find(c => c.toLowerCase() === data.categoryFromPath.toLowerCase());
+                if (match) detectedCategory = match;
+            }
+            
+            if (detectedCategory === 'Uncategorized' && shopCategories && shopCategories.length > 0) {
+                const match = shopCategories.find(c => nameLower.includes(c.toLowerCase()));
+                if (match) {
+                    detectedCategory = match;
+                }
+            }
 
             return {
-                index: idx,
-                product: mappedProduct,
-                errors,
-                isValid: errors.length === 0
+                id: Math.random().toString(36).substring(2, 9),
+                sku: sku,
+                files: data.files,
+                previewUrls: data.previewUrls,
+                name: nameSpace,
+                price: '',
+                category: detectedCategory,
+                description: '',
+                sizes: 'S, M, L, XL',
+                colors: 'Matte Black',
+                tags: ''
             };
         });
 
-        setProcessedRows(rows);
+        setPendingProducts(prev => [...prev, ...newProducts]);
+    };
 
-        const initialSelected = {};
-        rows.forEach(r => {
-            if (r.isValid) {
-                initialSelected[r.index] = true;
+    const updateProduct = (id, field, value) => {
+        setPendingProducts(prev => prev.map(p => 
+            p.id === id ? { ...p, [field]: value } : p
+        ));
+    };
+
+    const removeProduct = (id) => {
+        setPendingProducts(prev => {
+            const product = prev.find(p => p.id === id);
+            if (product && product.previewUrls) {
+                product.previewUrls.forEach(url => URL.revokeObjectURL(url));
             }
+            return prev.filter(p => p.id !== id);
         });
-        setSelectedRows(initialSelected);
-        setStep('preview');
-    };
-
-    const runValidation = () => {
-        validateWithMappings(parsedData, mappings);
-    };
-
-    const toggleSelectRow = (index) => {
-        setSelectedRows(prev => ({
-            ...prev,
-            [index]: !prev[index]
-        }));
-    };
-
-    const toggleSelectAll = () => {
-        const allSelected = Object.keys(selectedRows).length === processedRows.filter(r => r.isValid).length;
-        if (allSelected) {
-            setSelectedRows({});
-        } else {
-            const nextSelect = {};
-            processedRows.forEach(r => {
-                if (r.isValid) nextSelect[r.index] = true;
-            });
-            setSelectedRows(nextSelect);
-        }
-    };
-
-    const handleCommit = () => {
-        const productsToUpload = processedRows
-            .filter(r => selectedRows[r.index])
-            .map(r => r.product);
-
-        if (productsToUpload.length === 0) {
-            addToast('No items checked for import.', 'error');
-            return;
-        }
-
-        bulkUploadProducts(productsToUpload);
-        addToast(`Successfully imported ${productsToUpload.length} products to store catalog.`);
-        resetUpload();
-        if (onUploadComplete) onUploadComplete();
-    };
-
-    const downloadSampleCsv = () => {
-        const headers = ['Name', 'Price', 'Category', 'Description', 'Sizes', 'Colors', 'Image URL', 'Tags'];
-        const row1 = ['CORE UTILITY FIELD PUFFER', '8499.00', 'Outerwear', 'Insulated ripstop nylon puffer jacket with adjustable hems', 'S, M, L, XL', 'Matte Black, Sage Green', 'https://images.unsplash.com/photo-1611312449412-6cefac5dc3e4', 'NEW, WARM'];
-        const row2 = ['SLOUCH TECH SWEATSHIRT', '4999.00', 'Hoodies', 'Oversized fleece crewneck sweatshirt with custom ribbing detailing', 'M, L', 'Sage Green', 'https://images.unsplash.com/photo-1556821840-3a63f95609a7', 'ESSENTIAL'];
-        
-        const csvContent = [
-            headers.join(','),
-            row1.map(v => `"${v}"`).join(','),
-            row2.map(v => `"${v}"`).join(',')
-        ].join('\n');
-        
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'sneek_bulk_import_template.csv');
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        addToast('Sample CSV template downloaded successfully.');
     };
 
     const resetUpload = () => {
-        setFile(null);
-        setParsedData([]);
-        setHeaders([]);
-        setProcessedRows([]);
-        setSelectedRows({});
-        setStep('select');
+        pendingProducts.forEach(p => {
+            if (p.previewUrls) p.previewUrls.forEach(url => URL.revokeObjectURL(url));
+        });
+        setPendingProducts([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const downloadTemplate = async () => {
+        const zip = new JSZip();
+        
+        // Create root and images directory
+        const imgFolder = zip.folder("products").folder("images");
+        
+        // Shirts
+        imgFolder.folder("shirts").folder("SHIRT001");
+        imgFolder.folder("shirts").folder("SHIRT002");
+        
+        // Pants
+        imgFolder.folder("pants").folder("PANT001");
+        imgFolder.folder("pants").folder("PANT002");
+        
+        // Jackets
+        imgFolder.folder("jackets").folder("JACKET001");
+        imgFolder.folder("jackets").folder("JACKET002");
+        
+        // Hoodies
+        imgFolder.folder("hoodies").folder("HOODIE001");
+        imgFolder.folder("hoodies").folder("HOODIE002");
+        
+        // Sweaters
+        imgFolder.folder("sweaters").folder("SWEATER001");
+        imgFolder.folder("sweaters").folder("SWEATER002");
+
+        // Generate and download zip
+        try {
+            const content = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'products_template.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Error generating zip", err);
+            addToast("Failed to generate folder template zip.", "error");
+        }
+    };
+
+    const handleCommit = async () => {
+        // Validate
+        for (const p of pendingProducts) {
+            if (!p.name.trim()) {
+                addToast('All products must have a Name.', 'error');
+                return;
+            }
+            if (!p.price || isNaN(parseFloat(p.price))) {
+                addToast(`Please enter a valid numeric price for "${p.name}".`, 'error');
+                return;
+            }
+        }
+
+        setIsUploading(true);
+
+        try {
+            const finalProducts = [];
+
+            for (let i = 0; i < pendingProducts.length; i++) {
+                const product = pendingProducts[i];
+                const uploadedUrls = [];
+                
+                // Upload all images for this SKU
+                for (let j = 0; j < product.files.length; j++) {
+                    const file = product.files[j];
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${product.sku}_${Math.random().toString(36).substring(2, 8)}_${Date.now()}.${fileExt}`;
+                    const filePath = `${fileName}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                        .from('images')
+                        .upload(filePath, file, { upsert: false });
+                        
+                    if (uploadError) throw uploadError;
+                    
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('images')
+                        .getPublicUrl(filePath);
+                        
+                    uploadedUrls.push(publicUrl);
+                }
+
+                finalProducts.push({
+                    sku: product.sku,
+                    name: product.name.trim(),
+                    price: parseFloat(product.price),
+                    category: product.category.trim() || 'Uncategorized',
+                    description: product.description.trim(),
+                    images: uploadedUrls,
+                    sizes: product.sizes.trim(),
+                    colors: product.colors.trim(),
+                    tags: product.tags.trim()
+                });
+            }
+
+            bulkUploadProducts(finalProducts);
+            addToast(`Successfully imported ${finalProducts.length} products to store catalog.`);
+            resetUpload();
+            if (onUploadComplete) onUploadComplete();
+        } catch (err) {
+            console.error('Bulk upload image error:', err);
+            addToast('Error uploading images. Please try again.', 'error');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
         <div className="upload-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
-                    <h3>Bulk Upload Products</h3>
-                    <p style={{ margin: 0 }}>Import batches of garments using .csv or .json files</p>
+                    <h3>Image-First Bulk Upload</h3>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px' }}>
+                        Upload product images directly. Fill out their details below and submit all at once.
+                    </p>
                 </div>
-                {step !== 'select' && (
+                {pendingProducts.length > 0 && (
                     <button className="btn-secondary" onClick={resetUpload} style={{ padding: '8px 16px', fontSize: '12px' }}>
-                        <X size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Reset
+                        <X size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> Reset All
                     </button>
                 )}
             </div>
 
-            {step === 'select' && (
+            {pendingProducts.length === 0 ? (
                 <div>
                     <div
                         className={`dropzone-area ${dragActive ? 'drag-active' : ''}`}
@@ -339,153 +288,123 @@ export default function BulkUpload({ addToast, onUploadComplete }) {
                             ref={fileInputRef}
                             onChange={handleFileChange}
                             style={{ display: 'none' }}
-                            accept=".csv, .json"
+                            accept="image/*"
+                            webkitdirectory="true"
+                            directory="true"
+                            multiple
                         />
-                        <Upload className="dropzone-icon" size={48} />
-                        <p className="dropzone-text">Drag and drop file here, or click to browse</p>
-                        <span className="dropzone-subtext">Supports CSV or JSON templates</span>
+                        <ImageIcon className="dropzone-icon" size={48} />
+                        <p className="dropzone-text">Drag and drop folders/images here, or click to browse</p>
+                        <span className="dropzone-subtext">Folder names will automatically become the SKU</span>
                     </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px', fontSize: '12px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Need a schema template?</span>
+                    
+                    <div style={{ textAlign: 'center', marginTop: '16px' }}>
                         <button 
-                            onClick={downloadSampleCsv} 
-                            style={{ 
-                                background: 'none', 
-                                border: 'none', 
-                                color: 'var(--accent)', 
-                                textDecoration: 'underline', 
-                                cursor: 'pointer',
-                                padding: 0,
-                                fontSize: '12px',
-                                fontWeight: '600'
-                            }}
-                            type="button"
-                            id="download-template-btn"
+                            className="btn-secondary" 
+                            onClick={downloadTemplate}
+                            style={{ fontSize: '12px', padding: '6px 12px' }}
                         >
-                            Download Sample CSV
-                        </button>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
-                        <input 
-                            type="checkbox" 
-                            id="express-upload-checkbox" 
-                            checked={expressMode} 
-                            onChange={(e) => setExpressMode(e.target.checked)} 
-                            style={{ cursor: 'pointer' }}
-                        />
-                        <label htmlFor="express-upload-checkbox" style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
-                            Express Auto-Import (Skip column mapping step if columns match)
-                        </label>
-                    </div>
-                </div>
-            )}
-
-            {step === 'map' && (
-                <div>
-                    <div className="file-info-strip">
-                        <div className="file-name-side">
-                            <FileText size={20} style={{ color: 'var(--accent)' }} />
-                            <div>
-                                <span className="file-title">{file?.name}</span>
-                                <span className="file-meta"> ({parsedData.length} records found)</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h4 style={{ textTransform: 'uppercase', fontSize: '13px', margin: '20px 0 10px', color: 'var(--text-secondary)' }}>
-                        Map File Columns to Catalog Fields
-                    </h4>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                        {targetFields.map(field => (
-                            <div key={field.key} className="form-group" style={{ margin: 0 }}>
-                                <label className="form-label">{field.label}</label>
-                                <select
-                                    className="form-input"
-                                    value={mappings[field.key]}
-                                    onChange={(e) => handleMappingChange(field.key, e.target.value)}
-                                    style={{ cursor: 'pointer' }}
-                                    id={`map-select-${field.key}`}
-                                >
-                                    <option value="">-- Do Not Import / Default --</option>
-                                    {headers.map(h => (
-                                        <option key={h} value={h}>{h}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="bulk-actions-row">
-                        <button className="btn-accent" onClick={runValidation} id="validation-btn">
-                            Validate Data <Play size={14} style={{ marginLeft: '6px', verticalAlign: 'middle' }} />
+                            <Download size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                            Download Folder Template
                         </button>
                     </div>
                 </div>
-            )}
-
-            {step === 'preview' && (
+            ) : (
                 <div>
-                    <div className="file-info-strip">
-                        <div className="file-name-side">
-                            <CheckCircle size={20} style={{ color: 'var(--accent)' }} />
-                            <div>
-                                <span className="file-title">Validation Complete</span>
-                                <span className="file-meta">
-                                    {' '}
-                                    ({processedRows.filter(r => r.isValid).length} valid rows,{' '}
-                                    {processedRows.filter(r => !r.isValid).length} errors)
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="preview-table-container">
+                    <div className="preview-table-container" style={{ maxHeight: '600px', overflowY: 'auto', marginBottom: '20px' }}>
                         <table className="preview-table">
-                            <thead>
+                            <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-darker)', zIndex: 10 }}>
                                 <tr>
-                                    <th style={{ width: '40px' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={Object.keys(selectedRows).length === processedRows.filter(r => r.isValid).length && processedRows.filter(r => r.isValid).length > 0}
-                                            onChange={toggleSelectAll}
-                                        />
-                                    </th>
-                                    <th>Row</th>
-                                    <th>Name</th>
-                                    <th>Price</th>
+                                    <th style={{ width: '80px' }}>Image</th>
+                                    <th>Name *</th>
+                                    <th style={{ width: '100px' }}>Price (₹) *</th>
                                     <th>Category</th>
-                                    <th>Sizes</th>
-                                    <th>Status</th>
+                                    <th>Details (Sizes, Colors, Tags)</th>
+                                    <th style={{ width: '40px' }}></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {processedRows.map((r, i) => (
-                                    <tr key={i} className={!r.isValid ? 'row-invalid' : ''} id={`row-preview-${i}`}>
+                                {pendingProducts.map((p) => (
+                                    <tr key={p.id}>
+                                        <td style={{ padding: '8px' }}>
+                                            <div style={{ position: 'relative', width: '60px', height: '60px' }}>
+                                              <img src={p.previewUrls[0]} alt="preview" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
+                                              {p.previewUrls.length > 1 && (
+                                                <span style={{ position: 'absolute', bottom: '2px', right: '2px', background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: '10px', padding: '2px 4px', borderRadius: '4px' }}>+{p.previewUrls.length - 1}</span>
+                                              )}
+                                            </div>
+                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'center', wordBreak: 'break-all' }}>SKU: {p.sku}</div>
+                                        </td>
                                         <td>
-                                            <input
-                                                type="checkbox"
-                                                disabled={!r.isValid}
-                                                checked={!!selectedRows[r.index]}
-                                                onChange={() => toggleSelectRow(r.index)}
+                                            <input 
+                                                type="text" 
+                                                className="form-input" 
+                                                value={p.name}
+                                                onChange={(e) => updateProduct(p.id, 'name', e.target.value)}
+                                                placeholder="Product Name"
+                                                style={{ padding: '8px' }}
                                             />
                                         </td>
-                                        <td>{i + 1}</td>
-                                        <td title={r.product.name}>{r.product.name || <em style={{ color: 'var(--text-muted)' }}>Missing</em>}</td>
-                                        <td>₹{r.product.price.toFixed(2)}</td>
-                                        <td>{r.product.category}</td>
-                                        <td>{r.product.sizes}</td>
                                         <td>
-                                            {r.isValid ? (
-                                                <span className="row-status-ok">✔ Ready</span>
-                                            ) : (
-                                                <span className="row-status-err">
-                                                    <AlertTriangle size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-                                                    {r.errors.join(' ')}
-                                                </span>
-                                            )}
+                                            <input 
+                                                type="number" 
+                                                className="form-input" 
+                                                value={p.price}
+                                                onChange={(e) => updateProduct(p.id, 'price', e.target.value)}
+                                                placeholder="Price"
+                                                style={{ padding: '8px' }}
+                                                min="0"
+                                            />
+                                        </td>
+                                        <td>
+                                            <select 
+                                                className="form-input" 
+                                                value={p.category}
+                                                onChange={(e) => updateProduct(p.id, 'category', e.target.value)}
+                                                style={{ padding: '8px' }}
+                                            >
+                                                <option value="Uncategorized">Uncategorized</option>
+                                                {(shopCategories || []).map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-input" 
+                                                    value={p.sizes}
+                                                    onChange={(e) => updateProduct(p.id, 'sizes', e.target.value)}
+                                                    placeholder="Sizes (e.g. S, M, L)"
+                                                    style={{ padding: '6px', fontSize: '11px' }}
+                                                />
+                                                <input 
+                                                    type="text" 
+                                                    className="form-input" 
+                                                    value={p.colors}
+                                                    onChange={(e) => updateProduct(p.id, 'colors', e.target.value)}
+                                                    placeholder="Colors"
+                                                    style={{ padding: '6px', fontSize: '11px' }}
+                                                />
+                                                <input 
+                                                    type="text" 
+                                                    className="form-input" 
+                                                    value={p.tags}
+                                                    onChange={(e) => updateProduct(p.id, 'tags', e.target.value)}
+                                                    placeholder="Tags (e.g. NEW)"
+                                                    style={{ padding: '6px', fontSize: '11px' }}
+                                                />
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <button 
+                                                onClick={() => removeProduct(p.id)}
+                                                style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', padding: '4px' }}
+                                                title="Remove"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -493,21 +412,52 @@ export default function BulkUpload({ addToast, onUploadComplete }) {
                         </table>
                     </div>
 
-                    <div className="bulk-actions-row">
-                        <button className="btn-secondary" onClick={() => setStep(headers.length > 0 ? 'map' : 'select')}>
-                            Back to Mapping
-                        </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-luxe)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <button 
+                                className="btn-secondary" 
+                                onClick={() => fileInputRef.current.click()}
+                                disabled={isUploading}
+                            >
+                                <Upload size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                Add More Images
+                            </button>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                style={{ display: 'none' }}
+                                accept="image/*"
+                                multiple
+                            />
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                {pendingProducts.length} image{pendingProducts.length !== 1 ? 's' : ''} ready for data entry
+                            </span>
+                        </div>
                         <button
                             className="btn-accent"
                             onClick={handleCommit}
-                            disabled={Object.keys(selectedRows).length === 0}
+                            disabled={isUploading}
                             id="commit-upload-btn"
                         >
-                            Import Selected ({Object.keys(selectedRows).length} items)
+                            {isUploading ? <Loader2 size={14} className="spin" style={{ marginRight: '6px', verticalAlign: 'middle' }} /> : <Play size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />}
+                            {isUploading ? 'Uploading Images & Saving...' : `Submit ${pendingProducts.length} Products`}
                         </button>
                     </div>
                 </div>
             )}
+            <style>{`
+                .spin { animation: spin 1s linear infinite; }
+                @keyframes spin { 100% { transform: rotate(360deg); } }
+                
+                .preview-table input.form-input {
+                    background: var(--bg-darker);
+                    border: 1px solid var(--border-luxe);
+                }
+                .preview-table input.form-input:focus {
+                    border-color: var(--accent);
+                }
+            `}</style>
         </div>
     );
 }

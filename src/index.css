@@ -169,7 +169,7 @@ button {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(12, 12, 14, 0.85);
+  background: var(--menu-bg-color);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-luxe);
   transition: var(--transition-smooth);
@@ -219,7 +219,7 @@ button {
   font-size: 14px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--menu-text-color);
   transition: var(--transition-smooth);
 }
 
@@ -1110,6 +1110,10 @@ button {
   animation: scaleUp 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
 
+.modal-content-wide {
+  max-width: 900px;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1856,4 +1860,22 @@ html[data-transition="slide-up"]::view-transition-new(root) {
 @keyframes slide-in-up {
   from { transform: translateY(100px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+/* Simple Footer (Redesigned) */
+.footer-grid-simple {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 60px;
+}
+
+.footer-col-simple {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-bottom-simple {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 24px;
 }
