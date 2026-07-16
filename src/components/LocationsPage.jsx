@@ -3,7 +3,7 @@ import { MapPin, Phone, Clock } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
 export default function LocationsPage() {
-  const { locations, shopSettings } = useSettings();
+  const { locations } = useSettings();
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px' }}>
@@ -70,25 +70,25 @@ export default function LocationsPage() {
                   </div>
                 )}
               </div>
+
+              {s.map_embed_url && (
+                <div style={{ marginTop: '20px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-luxe)' }}>
+                  <iframe 
+                    src={s.map_embed_url}
+                    width="100%" 
+                    height="200" 
+                    style={{ border: 0, display: 'block' }} 
+                    allowFullScreen="" 
+                    loading="lazy" 
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title={`Map of ${s.city}`}
+                  ></iframe>
+                </div>
+              )}
             </div>
           ))
         )}
       </div>
-
-      {shopSettings?.map_embed_url && (
-        <div style={{ marginTop: '60px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-luxe)' }}>
-          <iframe 
-            src={shopSettings.map_embed_url}
-            width="100%" 
-            height="450" 
-            style={{ border: 0, display: 'block' }} 
-            allowFullScreen="" 
-            loading="lazy" 
-            referrerPolicy="no-referrer-when-downgrade"
-            title="Store Location Map"
-          ></iframe>
-        </div>
-      )}
     </div>
   );
 }

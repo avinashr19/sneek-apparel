@@ -66,7 +66,8 @@ export default function AdminDashboard({ addToast }) {
     address: '',
     phone: '',
     hours: '10:00 AM - 8:00 PM Daily',
-    description: ''
+    description: '',
+    map_embed_url: ''
   });
 
   // General Settings state
@@ -78,7 +79,6 @@ export default function AdminDashboard({ addToast }) {
   const [whatsapp, setWhatsapp] = useState('');
   const [instagram, setInstagram] = useState('');
   const [facebook, setFacebook] = useState('');
-  const [mapEmbedUrl, setMapEmbedUrl] = useState('');
 
   // Review Form state
   const [newReview, setNewReview] = useState({
@@ -99,7 +99,6 @@ export default function AdminDashboard({ addToast }) {
       setWhatsapp(shopSettings.whatsapp || '');
       setInstagram(shopSettings.instagram || '');
       setFacebook(shopSettings.facebook || '');
-      setMapEmbedUrl(shopSettings.map_embed_url || '');
     }
   }, [shopSettings]);
 
@@ -176,8 +175,8 @@ export default function AdminDashboard({ addToast }) {
       return;
     }
     await addLocation(newLoc);
-    addToast('New showroom location added successfully.');
-    setNewLoc({ city: '', address: '', phone: '', hours: '10:00 AM - 8:00 PM Daily', description: '' });
+    addToast(`Location "${newLoc.city}" added successfully.`);
+    setNewLoc({ city: '', address: '', phone: '', hours: '10:00 AM - 8:00 PM Daily', description: '', map_embed_url: '' });
   };
 
   const handleDeleteLocation = async (id) => {
@@ -221,8 +220,7 @@ export default function AdminDashboard({ addToast }) {
       about_story: aboutStory,
       whatsapp,
       instagram,
-      facebook,
-      map_embed_url: mapEmbedUrl
+      facebook
     });
     addToast('General store settings updated successfully.');
   };
@@ -735,6 +733,18 @@ export default function AdminDashboard({ addToast }) {
                 />
               </div>
 
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label" htmlFor="loc-map">Google Maps Embed URL</label>
+                <input 
+                  type="text" 
+                  id="loc-map" 
+                  className="form-input" 
+                  placeholder="e.g. https://www.google.com/maps/embed?pb=..." 
+                  value={newLoc.map_embed_url} 
+                  onChange={(e) => setNewLoc(prev => ({ ...prev, map_embed_url: e.target.value }))}
+                />
+              </div>
+
               <button type="submit" className="btn-accent" style={{ marginTop: '10px' }} id="add-loc-submit">
                 Add Location
               </button>
@@ -1082,25 +1092,6 @@ export default function AdminDashboard({ addToast }) {
                   value={facebook} 
                   onChange={(e) => setFacebook(e.target.value)}
                 />
-              </div>
-
-              <h4 style={{ textTransform: 'uppercase', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-luxe)', paddingTop: '16px', marginTop: '10px' }}>
-                Storefront Map
-              </h4>
-
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label" htmlFor="config-map">Google Maps Embed URL</label>
-                <input 
-                  type="text" 
-                  id="config-map" 
-                  className="form-input" 
-                  placeholder="e.g. https://www.google.com/maps/embed?pb=..." 
-                  value={mapEmbedUrl} 
-                  onChange={(e) => setMapEmbedUrl(e.target.value)}
-                />
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                  This map will be displayed on the Showrooms / Locations page.
-                </span>
               </div>
 
               <button type="submit" className="btn-accent" style={{ marginTop: '10px' }} id="save-settings-submit">
