@@ -18,7 +18,7 @@ export default function ProductCard({ product, addToast }) {
         <article className="product-card" data-product-id={product.id}>
             <div className="product-carousel">
                 <img
-                    src={product.img}
+                    src={product.img_url || product.img}
                     alt={product.name}
                     className="product-img"
                     loading="lazy"

@@ -1,21 +1,34 @@
 import React, { useState } from 'react';
 import { Mail, MessageSquare, Globe, Camera, Send, Link } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { supabase } from '../lib/supabase';
 
 export default function ContactPage({ addToast }) {
   const { shopSettings } = useSettings();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.name || !form.message) {
+      addToast('Please fill in your name and message.', 'error');
+      return;
+    }
     setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
-      addToast(`Thank you, ${form.name}. Your inquiry has been sent to our styling team.`);
+    const { error } = await supabase.from('feedback').insert([{
+      name: form.name,
+      email: form.email,
+      message: form.message,
+    }]);
+
+    setLoading(false);
+    if (error) {
+      addToast('Failed to send message. Please try again.', 'error');
+    } else {
+      addToast(`Thank you, ${form.name}. Your message has been received!`);
       setForm({ name: '', email: '', message: '' });
-    }, 800);
+    }
   };
 
   const socials = [

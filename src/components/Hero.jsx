@@ -54,7 +54,7 @@ export default function Hero({ setCurrentView }) {
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: `linear-gradient(to bottom, rgba(12, 12, 14, 0.45) 0%, rgba(12, 12, 14, 0.9) 100%), url(${s.img})`,
+            backgroundImage: `linear-gradient(to bottom, rgba(12, 12, 14, 0.45) 0%, rgba(12, 12, 14, 0.9) 100%), url(${s.img_url || s.img})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             opacity: activeSlide === idx ? 1 : 0,

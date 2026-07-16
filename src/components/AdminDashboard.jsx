@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Tag, IndianRupee, Layers, PlusCircle, X, Shield, Settings, Sliders, MapPin, Edit3, Download, Upload, Image } from 'lucide-react';
+import { Plus, Trash2, Tag, IndianRupee, Layers, PlusCircle, X, Shield, Settings, Sliders, MapPin, Edit3, Download, Upload, Image, MessageSquare, ShoppingBag } from 'lucide-react';
 import { useProducts } from '../context/ProductsContext';
 import { useSettings } from '../context/SettingsContext';
+import { supabase } from '../lib/supabase';
 import BulkUpload from './BulkUpload';
 
 export default function AdminDashboard({ addToast }) {
@@ -20,8 +21,11 @@ export default function AdminDashboard({ addToast }) {
     updateSettings 
   } = useSettings();
 
-  const [activeTab, setActiveTab] = useState('garments'); // garments, carousel, locations, settings
+  const [activeTab, setActiveTab] = useState('garments');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [feedback, setFeedback] = useState([]);
+  const [orderLogs, setOrderLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -92,22 +96,26 @@ export default function AdminDashboard({ addToast }) {
     }
   }, [products, ledgerPage]);
 
-  const handleManualAdd = (e) => {
+  const handleManualAdd = async (e) => {
     e.preventDefault();
     if (!newProduct.name || !newProduct.price) {
       addToast('Please fill in required name and price fields.', 'error');
       return;
     }
 
-    const added = addNewProduct(newProduct);
-    addToast(`Manually added ${added.name} to catalog.`);
-    setShowAddModal(false);
+    const added = await addNewProduct(newProduct);
+    if (added) {
+      addToast(`Manually added ${added.name} to catalog.`);
+      setShowAddModal(false);
+    } else {
+      addToast('Failed to add product. Please try again.', 'error');
+    }
     
     // Reset form
     setNewProduct({
       name: '',
       price: '',
-      category: 'Hoodies',
+      category: shopCategories[0] || 'Hoodies',
       description: '',
       img: '',
       sizes: 'S, M, L, XL',
@@ -116,76 +124,59 @@ export default function AdminDashboard({ addToast }) {
     });
   };
 
-  const handleDeleteProduct = (id, name) => {
+  const handleDeleteProduct = async (id, name) => {
     if (confirm(`Are you sure you want to delete "${name}" from the store catalog?`)) {
-      deleteProduct(id);
+      await deleteProduct(id);
       addToast(`Deleted ${name} from catalog.`, 'error');
     }
   };
 
-  const handleAddSlide = (e) => {
+  const handleAddSlide = async (e) => {
     e.preventDefault();
-    if (!newSlide.title || !newSlide.img) {
-      addToast('Slide title and image URL are required.', 'error');
+    if (!newSlide.title || (!newSlide.img && !newSlide.img_url)) {
+      addToast('Slide title and image are required.', 'error');
       return;
     }
 
-    addSlide(newSlide);
+    await addSlide(newSlide);
     addToast('New homepage banner slide added successfully.');
     
-    // Reset slide form
-    setNewSlide({
-      tag: '',
-      title: '',
-      desc: '',
-      offer: '',
-      img: ''
-    });
+    setNewSlide({ tag: '', title: '', desc: '', offer: '', img: '' });
   };
 
-  const handleDeleteSlide = (index) => {
+  const handleDeleteSlide = async (id) => {
     if (bannerSlides.length <= 1) {
-      addToast('You must keep at least 1 homepage slide to prevent banner breakdown.', 'error');
+      addToast('You must keep at least 1 homepage slide.', 'error');
       return;
     }
-
     if (confirm('Delete this homepage slide?')) {
-      removeSlide(index);
+      await removeSlide(id);
       addToast('Slide removed from homepage banner.', 'error');
     }
   };
 
-  const handleAddLocation = (e) => {
+  const handleAddLocation = async (e) => {
     e.preventDefault();
     if (!newLoc.city || !newLoc.address) {
       addToast('City title and address are required.', 'error');
       return;
     }
-
-    addLocation(newLoc);
+    await addLocation(newLoc);
     addToast('New showroom location added successfully.');
-    
-    // Reset location form
-    setNewLoc({
-      city: '',
-      address: '',
-      phone: '',
-      hours: '10:00 AM - 8:00 PM Daily',
-      description: ''
-    });
+    setNewLoc({ city: '', address: '', phone: '', hours: '10:00 AM - 8:00 PM Daily', description: '' });
   };
 
-  const handleDeleteLocation = (index) => {
+  const handleDeleteLocation = async (id) => {
     if (confirm('Delete this showroom location?')) {
-      removeLocation(index);
+      await removeLocation(id);
       addToast('Showroom location removed.', 'error');
     }
   };
 
-  const handleManualAddCategory = (e) => {
+  const handleManualAddCategory = async (e) => {
     e.preventDefault();
     if (!newCategoryName.trim()) return;
-    const success = addCategory(newCategoryName);
+    const success = await addCategory(newCategoryName);
     if (success) {
       addToast(`Category "${newCategoryName}" added successfully.`);
       setNewCategoryName('');
@@ -206,14 +197,14 @@ export default function AdminDashboard({ addToast }) {
     }
   };
 
-  const handleSaveSettings = (e) => {
+  const handleSaveSettings = async (e) => {
     e.preventDefault();
-    updateSettings({
-      freeShippingThreshold: parseFloat(shippingThreshold) || 0,
-      announcementBar: announcementText,
-      contactEmail: emailContact,
-      aboutMission,
-      aboutStory,
+    await updateSettings({
+      free_shipping_threshold: parseFloat(shippingThreshold) || 0,
+      announcement_bar: announcementText,
+      contact_email: emailContact,
+      about_mission: aboutMission,
+      about_story: aboutStory,
       whatsapp,
       instagram,
       facebook
@@ -248,6 +239,20 @@ export default function AdminDashboard({ addToast }) {
     downloadAnchor.removeChild(downloadAnchor);
     addToast('Store configurations exported successfully.');
   };
+
+  // Load feedback and order logs when those tabs are opened
+  useEffect(() => {
+    if (activeTab === 'feedback') {
+      setLogsLoading(true);
+      supabase.from('feedback').select('*').order('created_at', { ascending: false })
+        .then(({ data }) => { setFeedback(data || []); setLogsLoading(false); });
+    }
+    if (activeTab === 'orderlogs') {
+      setLogsLoading(true);
+      supabase.from('order_logs').select('*').order('created_at', { ascending: false })
+        .then(({ data }) => { setOrderLogs(data || []); setLogsLoading(false); });
+    }
+  }, [activeTab]);
 
   // Compute catalog stats
   const totalValue = products.reduce((acc, p) => acc + p.price, 0);
@@ -296,7 +301,9 @@ export default function AdminDashboard({ addToast }) {
           { id: 'categories', label: 'Categories', icon: <Tag size={14} /> },
           { id: 'carousel', label: 'Home Carousel', icon: <Sliders size={14} /> },
           { id: 'locations', label: 'Showrooms', icon: <MapPin size={14} /> },
-          { id: 'settings', label: 'General Config', icon: <Settings size={14} /> }
+          { id: 'settings', label: 'General Config', icon: <Settings size={14} /> },
+          { id: 'feedback', label: 'Feedback', icon: <MessageSquare size={14} /> },
+          { id: 'orderlogs', label: 'Order Logs', icon: <ShoppingBag size={14} /> },
         ].map(tab => (
           <button
             key={tab.id}
@@ -978,6 +985,74 @@ export default function AdminDashboard({ addToast }) {
                 <Download size={14} /> Export Settings & Config (JSON)
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* FEEDBACK TAB */}
+      {activeTab === 'feedback' && (
+        <div>
+          <div className="dashboard-card">
+            <h3 style={{ marginBottom: '6px' }}>Customer Feedback</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px' }}>
+              Messages submitted via the contact page ({feedback.length} total)
+            </p>
+            {logsLoading ? (
+              <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+            ) : feedback.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>No feedback received yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {feedback.map(fb => (
+                  <div key={fb.id} style={{ padding: '16px', background: 'var(--bg-darker)', borderRadius: '8px', border: '1px solid var(--border-luxe)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>{fb.name || 'Anonymous'}</strong>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(fb.created_at).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--accent)', marginBottom: '8px' }}>{fb.email}</div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: '1.6', whiteSpace: 'pre-line' }}>{fb.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ORDER LOGS TAB */}
+      {activeTab === 'orderlogs' && (
+        <div>
+          <div className="dashboard-card">
+            <h3 style={{ marginBottom: '6px' }}>WhatsApp Order Enquiries</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px' }}>
+              All checkout enquiries sent via WhatsApp ({orderLogs.length} total)
+            </p>
+            {logsLoading ? (
+              <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+            ) : orderLogs.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>No orders yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {orderLogs.map(log => (
+                  <div key={log.id} style={{ padding: '16px', background: 'var(--bg-darker)', borderRadius: '8px', border: '1px solid var(--border-luxe)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <div>
+                        <strong style={{ color: 'var(--text-primary)' }}>{log.customer_name || 'Unknown'}</strong>
+                        <span style={{ marginLeft: '12px', fontSize: '12px', color: 'var(--accent)' }}>{log.customer_phone}</span>
+                      </div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(log.created_at).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {(Array.isArray(log.items) ? log.items : []).map((item, i) => (
+                        <div key={i} style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '8px', background: 'var(--bg-card)', borderRadius: '6px' }}>
+                          {i + 1}. <strong>{item.name}</strong> — Size: {item.size} · Color: {item.color} · Qty: {item.qty} · ₹{item.price?.toLocaleString('en-IN')}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

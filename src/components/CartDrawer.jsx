@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Trash2, Plus, Minus, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
+import { supabase } from '../lib/supabase';
 
 export default function CartDrawer({ addToast }) {
     const {
@@ -32,7 +33,7 @@ export default function CartDrawer({ addToast }) {
         setCheckoutStep('review');
     };
 
-    const handleConfirmPayment = () => {
+    const handleConfirmPayment = async () => {
         const productTextList = cart.map((item, idx) => {
             return `${idx + 1}. ${item.product.name}\n   Size: ${item.selectedSize}\n   Color: ${item.selectedColor}\n   Qty: ${item.quantity}`;
         }).join('\n\n');
@@ -43,6 +44,21 @@ export default function CartDrawer({ addToast }) {
         const waUrl = `https://wa.me/${cleanNum}?text=${encodeURIComponent(msgText)}`;
         
         window.open(waUrl, '_blank');
+
+        // Log order to Supabase
+        const orderItems = cart.map(item => ({
+            name: item.product.name,
+            size: item.selectedSize,
+            color: item.selectedColor,
+            qty: item.quantity,
+            price: item.product.price,
+        }));
+        await supabase.from('order_logs').insert([{
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            items: orderItems,
+            whatsapp_sent: true,
+        }]);
 
         setCheckoutStep('success');
         addToast('Inquiry launched on WhatsApp.');
